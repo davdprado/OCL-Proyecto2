@@ -1,3 +1,5 @@
+const url = "http://localhost:8000";
+
 window.addEventListener('load', openArchivo, false);
 
     function openArchivo() {
@@ -12,4 +14,16 @@ window.addEventListener('load', openArchivo, false);
     
     function leerArchivo(ev) {
         document.getElementById('contenido').value=ev.target.result;
+    }
+
+
+    function comunicar() {
+        fetch(url+'/users')
+        .then(response=> response.json())
+        .then(data=>{
+            console.log(data);
+            data = JSON.stringify(data);
+            document.getElementById('consolita').value=data;
+        })
+        .catch(err=>console.log(err));    
     }
