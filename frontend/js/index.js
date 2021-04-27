@@ -21,9 +21,26 @@ window.addEventListener('load', openArchivo, false);
         fetch(url+'/users')
         .then(response=> response.json())
         .then(data=>{
-            console.log(data);
             data = JSON.stringify(data);
             document.getElementById('consolita').value=data;
         })
         .catch(err=>console.log(err));    
+    }
+
+    function enviarData() {
+        fetch(url+'/users',{
+            method: 'POST',
+            headers:{
+                'Content-Type':'application/json',
+            },
+            body: JSON.stringify({
+                informacion: document.getElementById('contenido').value
+            })
+        })
+        .then(response=>response.json())
+        .then(data=>{
+            data = JSON.stringify(data);
+            document.getElementById('consolita').value=data;
+        })
+        .catch(err=>console.log(err)); 
     }

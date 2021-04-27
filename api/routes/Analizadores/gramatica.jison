@@ -13,25 +13,75 @@
 "//".*					//comentario unilinea
 [/][*][^*]*[*]+([^/*][^*]*[*]+)*[/]	//comentario multilinea
 
+"true"					return 'truee';
+"false"					return 'falsee';
+"+"						return 'mas';
+"-"						return 'menos';
+"*"						return 'por';
+"/"						return 'dividido';
+"^"						return 'elevado';
+"%"						return 'modular';
+"="						return 'igual';
+"!"						return 'nott';
+":"						return 'dosPuntos';
+";"						return 'pyc';
+">"						return 'mayorQue';
+"<"						return 'menorQue';
+"?"						return 'pregunta';
+"."						return 'punto';
+"=="					return 'igualIgual';
+"!="					return 'diferente';
+"<="					return 'menorIgual';
+">="					return 'mayorIgual';
+"||"					return 'orr';
+"&&"					return 'andd';
+"("						return 'pIzq';
+")"						return 'pDer';
+"{"						return 'llaveIzq';
+"}"						return 'llaveDer';
+"["						return 'corIzq';
+"]"						return 'corDer';
+"new"					return 'nuevo';
+"list"					return 'listaa';
+"."						return 'punto';
+","						return 'comaa';
+"add"					return 'agregar';
+"if"					return 'sentenciaIf';
+"else"					return 'sentenciaElse';
+"print"					return 'imprimir';
+"switch"				return 'sentenciaSwitch';
+"case"					return 'casoo';
+"break"					return 'romper';
+"default"				return 'defectoo';
+"while"					return 'sentenciaWhile';
+"do"					return 'sentenciaDo';
+"for"					return 'sentenciaFor';
+"continue"				return 'continuar';
+"return"				return 'retornar';
+"void"					return 'tipoVoid';
+"exec"					return 'ejecutar';
+"tolower"				return 'toMinusculas';
+"toupper"				return 'toMayus';
+"length"				return 'tamanoo';
+"truncate"				return 'f_truncate';
+"round"					return 'redondear';
+"typeof"				return 'retTipo';
+"tostring"				return 'toTexto';
+"tochararray"			return 'toCaracter';
+"int"					return 'tipoInt';
+"double"				return 'tipoDouble';
+"boolean"				return 'tipoBooleano';
+"char"					return 'tipoChar';
+"string"				return 'tipoString';
 
-"decimal"			return 'decimal';
-"cadena"			return 'cadena';	
-"bandera"			return 'bandera';
-";"					return 'pycoma';
-"-"					return 'menos';
-"+"					return 'mas';
-"*"					return 'por';
-"/"					return 'dividido';
-"<"					return 'menor';
-"true"				return 'truee';	
-"false"				return 'falsee';
-"cout"				return 'imprimir';
-"("					return 'parizq';
-")"					return 'parder';
+//pueden faltar los -- o ++
 
 \"[^\"]*\"				{yytext=yytext.substr(1,yyleng-2); return 'cadenaaa';}
-[0-9]+("."[0-9]+)?\b	return 'decimall'; 
+\'[^\']?\'				return 'caracter';
+[0-9]+("."[  |0-9]+)?	return 'decimall';
+[0-9]+					return 'entero'; 
 ([a-zA-Z])[a-zA-Z0-9_]*	return 'identificador';
+					
 
 <<EOF>>					return 'EOF';
 
@@ -45,8 +95,13 @@
 %}
 
 // Precedencia de operadores
+%left 'orr'
+%left 'andd'
+%right 'nott'
+%left 'igualIgual' 'mayorQue' 'menorQue' 'mayorIgual' 'menorIgual' 'diferente'
 %left 'mas' 'menos'
-%left 'por' 'dividido'
+%left 'por' 'dividido'  //falta el de potencia
+%left 'potencia'
 %left UMENOS
 
 %start INICIO 
@@ -60,20 +115,52 @@ INICIO
 CUERPO
 	: CUERPO DECLARACION
 	| CUERPO IMPRIMIR
+	| CUERPO ASIGNACION
+	| CUERPO CASTEO
+	| CASTEO
 	| DECLARACION
+	| ASIGNACION
 	| IMPRIMIR;
 
 DECLARACION
-	: TIPO identificador menor menos EXP pycoma
-	| TIPO identificador pycoma;
+	: TIPO identificador igual EXP pyc
+	| TIPO identificador pyc;
+
+ASIGNACION
+	:identificador igual EXP pyc;
 
 IMPRIMIR 
-	: imprimir menor menor EXP pycoma;
+	: imprimir pIzq EXP pDer pyc;
+
+CASTEO
+	: pIzq TIPO pDer EXP pyc;
+
+VECTOR
+	: TIPO corIzq corDer identificador igual nuevo TIPO corIzq EXP corDer pyc
+	| TIPO corIzq corDer identificador igual llaveIzq LISTAVALORES llaveDer pyc;
+
+LISTAVALORES
+	: LISTAVALORES comaa VALOR
+	| VALOR;
+
+INST_LISTA
+	: listaa menorQue TIPO mayorQue identificador igual nuevo listaa menorQue TIPO mayorQue pyc;
+
+AGREGAR_LISTA
+	: identificador punto agregar pIzq EXP pDer pyc;
+
+MODIFICAR_LISTA
+	: identificador corIzq corIzq EXP corDer corDer igual EXP pyc;
+
+ACCESO_LISTA
+	: identificador corIzq corIzq EXP corDer corDer;
 
 TIPO
-	: decimal
-	| cadena
-	| bandera;
+	: tipoDouble
+	| tipoChar
+	| tipoBooleano
+	| tipoInt
+	| tipoString;
 
 EXP
 	: EXP mas EXP
@@ -81,9 +168,14 @@ EXP
 	| EXP por EXP
 	| EXP dividido EXP
 	| menos EXP
-	| parizq EXP parder
+	| pIzq EXP pDer
+    | VALOR;
+
+VALOR
+	: entero
 	| decimall
 	| cadenaaa
+    | caracter
 	| truee
 	| falsee
 	| identificador;
