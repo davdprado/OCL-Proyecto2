@@ -41,44 +41,158 @@ function procesarExpresion(expresion,tsglobal,tslocal) {
             return{
                 tipo:TIPO_DATO.DECIMAL,
                 valor:valorizq.valor+valorder.valor
-            }
+            };
 
         }else if (valorizq.tipo==TIPO_DATO.CADENA && valorder.tipo==TIPO_DATO.DECIMAL) {
             return{
                 tipo:TIPO_DATO.CADENA,
                 valor:valorizq.valor+String(valorder.valor)
-            }
+            };
         }else if (valorizq.tipo==TIPO_DATO.DECIMAL && valorder.tipo==TIPO_DATO.CADENA) {
             return{
                 tipo:TIPO_DATO.CADENA,
                 valor:String(valorizq.valor)+valorder.valor
-            }
+            };
         }else if (valorizq.tipo==TIPO_DATO.CADENA && valorder.tipo==TIPO_DATO.CADENA) {
             return{
                 tipo:TIPO_DATO.CADENA,
                 valor:valorizq.valor+valorder.valor
-            }
+            };
+        }else if (valorizq.tipo==TIPO_DATO.BANDERA && valorder.tipo==TIPO_DATO.BANDERA) {
+            return{
+                tipo:TIPO_DATO.BANDERA,
+                valor:valorizq.valor+valorder.valor
+            };
+        }else if (valorizq.tipo==TIPO_DATO.CADENA && valorder.tipo==TIPO_DATO.BANDERA) {
+            return{
+                tipo:TIPO_DATO.CADENA, 
+                valor:valorizq.valor+String(valorder.valor)
+            };
         }else{
             //error semantico 
             console.log('Error Semantico los tipos no se pueden sumar');
             return undefined;
         }
+    }else if (expresion.tipo==TIPO_OPERACION.RESTA) { //resta
+        var valorizq = procesarExpresion(expresion.operanIzq,tsglobal,tslocal);
+        var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal);
 
-    }else if (expresion.tipo==TIPO_OPERACION.RESTA) {
+        //tipos de resultados y su retorno
+        if (valorizq.tipo==TIPO_DATO.DECIMAL && valorder.tipo==TIPO_DATO.DECIMAL) {
+            return{
+                tipo:TIPO_DATO.DECIMAL,
+                valor:valorizq.valor-valorder.valor
+            };
+
+        }else{
+            //error semantico 
+            console.log('Error Semantico los tipos no se pueden restar');
+            return undefined;
+        }
         
-    }else if (expresion.tipo==TIPO_OPERACION.MULTIPLICACION) {
+    }else if (expresion.tipo==TIPO_OPERACION.MULTIPLICACION) { //multiplicacion
+        var valorizq = procesarExpresion(expresion.operanIzq,tsglobal,tslocal);
+        var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal);
+
+        //tipos de resultados y su retorno
+        if (valorizq.tipo==TIPO_DATO.DECIMAL && valorder.tipo==TIPO_DATO.DECIMAL) {
+            return{
+                tipo:TIPO_DATO.DECIMAL,
+                valor:valorizq.valor*valorder.valor
+            };
+
+        }else{
+            //error semantico 
+            console.log('Error Semantico los tipos no se pueden multiplicar');
+            return undefined;
+        }
+
+    }else if (expresion.tipo==TIPO_OPERACION.DIVISION) {        //division
+        var valorizq = procesarExpresion(expresion.operanIzq,tsglobal,tslocal);
+        var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal);
+
+        //tipos de resultados y su retorno 
+        if(valorizq.tipo==TIPO_DATO.DECIMAL && valorder.valor==0){
+            console.log('imposible dividir entre 0');
+            return undefined;
+        }
         
-    }else if (expresion.tipo==TIPO_OPERACION.DIVISION) {
-        
-    }else if (expresion.tipo==TIPO_OPERACION.NEGATIVO) {
-        
+        if (valorizq.tipo==TIPO_DATO.DECIMAL && valorder.tipo==TIPO_DATO.DECIMAL) {
+            return{
+                tipo:TIPO_DATO.DECIMAL,
+                valor:valorizq.valor/valorder.valor
+            };
+
+        }else{
+            //error semantico 
+            console.log('Error Semantico los tipos no se pueden dividir');
+            return undefined;
+        }
+
+    }else if (expresion.tipo==TIPO_OPERACION.NEGATIVO) {    //negativo
+        var valorizq = procesarExpresion(expresion.operanIzq,tsglobal,tslocal);
+        //var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal);
+
+        //tipos de resultados y su retorno 
+        if (valorizq.tipo==TIPO_DATO.DECIMAL) {
+            return{
+                tipo:TIPO_DATO.DECIMAL,
+                valor:valorizq.valor*-1
+            };
+
+        }else{
+            //error semantico 
+            console.log('Error Semantico para devolver negativo');
+            return undefined;
+        }
+
     }else if (expresion.tipo==TIPO_VALOR.DECIMAL) {
-        
+        return{
+            tipo:TIPO_DATO.DECIMAL,
+            valor:expresion.valor
+        };
     }else if (expresion.tipo==TIPO_VALOR.CADENA) {
+        return{
+            tipo:TIPO_DATO.CADENA,
+            valor:expresion.valor
+        };
         
     }else if (expresion.tipo==TIPO_VALOR.BANDERA) {
+        return{
+            tipo:TIPO_DATO.BANDERA,
+            valor:expresion.valor
+        };
         
     }else if (expresion.tipo==TIPO_VALOR.IDENTIFICADOR) {
-        
+        //buscar el valor de la tabla de simbolos el valor de la variable en la ts local
+        if (tslocal != undefined) {
+            var valorId=tslocal.obtener(expresion.valor);   //si la tslocal no esta indefinida busca el valor en esta
+            if(valorId){
+                return{
+                    tipo:tipo.valor.tipo,
+                    valor:valorId.valor
+                };
+            }else{
+                valorId=tsglobal.obtener(expresion.valor);  //si no encuentra la variable en la local entonces buscara en la global
+                if(valorId){
+                    return{
+                        tipo:tipo.valor.tipo,
+                        valor:valorId.valor
+                    };
+                }else{
+                    return undefined;
+                }
+            }
+        }else{
+            var valorId=tsglobal.obtener(expresion.valor); //si no existe la tslocal entonces de una vez pasa a buscar en la global
+            if(valorId){
+                return{
+                    tipo:tipo.valor.tipo,
+                    valor:valorId.valor
+                };
+            }else{
+                return undefined;
+            }
+        }
     }
 }
