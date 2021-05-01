@@ -28,7 +28,7 @@ window.addEventListener('load', openArchivo, false);
     }
 
     function enviarData() {
-        fetch(url+'/users',{
+        fetch(url+'/compilar',{
             method: 'POST',
             headers:{
                 'Content-Type':'application/json',

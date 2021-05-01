@@ -1,19 +1,23 @@
 var express = require('express');
 var router = express.Router();
-var parser = require('./Analizadores/gramatica');
+var parser = require('./Ejemplo/Analisis/gramatic');
+//este es solo de prueba
+//var parser = require('./Analizadores/gramatica');
 
 /* GET users listing. */
-router.post('/', function(req, res, next) {
+
+router.post('/',function(req,res,next) {
     try {
-        console.log(req.files.archivo.data.toString('utf-8'));
-        parser.parse(req.files.archivo.data.toString('utf-8'));
-        res.statusCode=200;
-        res.json({salida:""});
+      var nueva = req.body.informacion;
+      console.log(nueva);
+      let arbol = parser.parse(nueva);
+      res.statusCode =200;
+      res.json({respuesta:"funciono"});
     } catch (e) {
-        console.log(e);
-        res.statusCode=200;
-        res.json({salida:""});
+      console.log(e);
+      res.statusCode =200;
+      res.json({respuesta:e});
     }
-});
+  });
 
 module.exports = router;

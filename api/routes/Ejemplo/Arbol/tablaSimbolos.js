@@ -44,6 +44,7 @@ class TS{
         }else{
             //manejar lo que no existe
             console.log('No existe la varialbe: '+id);
+            return undefined;
         }
     }
     get simbos(){

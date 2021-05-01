@@ -91,7 +91,11 @@
 
 //parser-code
 %{
-	
+    const TIPO_OPERACION = require('../Arbol/instrucciones').TIPO_OPERACION;
+    const TIPO_VALOR = require('../Arbol/instrucciones').TIPO_VALOR;
+    const TIPO_INSTRUCCIONES = require('../Arbol/instrucciones').TIPO_INSTRUCCIONES;
+    const INSTRUCCIONES = require('../Arbol/instrucciones').INSTRUCCIONES;
+    const TIPO_DATO = require('../Arbol/tablaSimbolos').TIPO_DATO;
 %}
 
 // Precedencia de operadores
@@ -101,7 +105,8 @@
 %left 'igualIgual' 'mayorQue' 'menorQue' 'mayorIgual' 'menorIgual' 'diferente'
 %left 'mas' 'menos'
 %left 'por' 'dividido'  //falta el de potencia
-%left 'potencia'
+%nonassosiative 'potencia'
+%right UCASTEO
 %left UMENOS
 
 %start INICIO 
@@ -110,76 +115,51 @@
 %%
 
 INICIO
-	: CUERPO EOF { console.log('Funciono');};
+	: CUERPO EOF { return $1; console.log('Funciono');};
 
 CUERPO
-	: CUERPO DECLARACION
-	| CUERPO IMPRIMIR
+	: CUERPO DECLARACION                    { $1.push($2);$$=$1;}
+	| CUERPO IMPRIMIR                       { $1.push($2);$$=$1;}
 	| CUERPO ASIGNACION
-	| CUERPO CASTEO
-	| CASTEO
-	| DECLARACION
+	| DECLARACION                           { $$=[$1];}//sin tener que retornar arraylist solo un arreglo
 	| ASIGNACION
-	| IMPRIMIR
-	| error { console.error('Este es un error sintáctico: ' + yytext + ', en la linea: ' + this._$.first_line + ', en la columna: ' + this._$.first_column); };
-
+	| IMPRIMIR                              { $$=[$1];};
+//aqui iran como el while, if, etc
 DECLARACION
-	: TIPO identificador igual EXP pyc
-	| TIPO identificador pyc;
+	: TIPO identificador igual EXP pyc      { $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,$4); }
+	| TIPO identificador pyc                { $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,undefined); };
 
 ASIGNACION
 	:identificador igual EXP pyc;
 
 IMPRIMIR 
-	: imprimir pIzq EXP pDer pyc;
+	: imprimir pIzq EXP pDer pyc    { $$=INSTRUCCIONES.nuevaImprimir($3);};
 
 CASTEO
-	: pIzq TIPO pDer EXP pyc;
-
-VECTOR
-	: TIPO corIzq corDer identificador igual nuevo TIPO corIzq EXP corDer pyc
-	| TIPO corIzq corDer identificador igual llaveIzq LISTAVALORES llaveDer pyc;
-
-LISTAVALORES
-	: LISTAVALORES comaa VALOR
-	| VALOR;
-
-INST_LISTA
-	: listaa menorQue TIPO mayorQue identificador igual nuevo listaa menorQue TIPO mayorQue pyc;
-
-AGREGAR_LISTA
-	: identificador punto agregar pIzq EXP pDer pyc;
-
-MODIFICAR_LISTA
-	: identificador corIzq corIzq EXP corDer corDer igual EXP pyc;
-
-ACCESO_LISTA
-	: identificador corIzq corIzq EXP corDer corDer;
+	: pIzq TIPO pDer EXP %prec UCASTEO;
 
 TIPO
-	: tipoDouble
+	: tipoDouble                    { $$=TIPO_DATO.DECIMAL; }
 	| tipoChar
-	| tipoBooleano
+	| tipoBooleano                  { $$=TIPO_DATO.BANDERA; }
 	| tipoInt
-	| tipoString;
+	| tipoString                    { $$=TIPO_DATO.CADENA; };
 
 EXP
-	: EXP mas EXP
-	| EXP menos EXP
-	| EXP por EXP
-	| EXP dividido EXP
-	| menos EXP
-	| pIzq EXP pDer
-    | VALOR;
-
-VALOR
-	: entero
-	| decimall
-	| cadenaaa
-    | caracter
-	| truee
-	| falsee
-	| identificador;
+	: EXP mas EXP                   {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.SUMA,$1,$3);}
+	| EXP menos EXP                 {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.RESTA,$1,$3);}                             
+	| EXP por EXP                   {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.MULTIPLICACION,$1,$3);}
+	| EXP dividido EXP              {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.DIVISION,$1,$3);}
+	| menos EXP %prec UMENOS        {$$=INSTRUCCIONES.nuevaOperacionUnaria(TIPO_OPERACION.NEGATIVO,$2);}
+	| pIzq EXP pDer                 {$$=$2}
+    | CASTEO
+    | entero                        
+	| decimall                      {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.DECIMAL,Number($1));}
+	| cadenaaa                      {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.CADENA,$1);}
+    | caracter  
+	| truee                         {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.BANDERA,true);}
+	| falsee                        {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.BANDERA,false);}
+	| identificador                 {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.IDENTIFICADOR,$1);};
 
 
 
