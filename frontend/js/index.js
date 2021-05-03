@@ -39,8 +39,7 @@ window.addEventListener('load', openArchivo, false);
         })
         .then(response=>response.json())
         .then(data=>{
-            data = JSON.stringify(data);
-            document.getElementById('consolita').value=data;
+            document.getElementById('consolita').value=data.respuesta;
         })
         .catch(err=>console.log(err)); 
     }

@@ -15,12 +15,21 @@ const TIPO_OPERACION={
     RESTA:              'OP_RESTA',
     MULTIPLICACION:     'OP_MULTIPLICACION',
     DIVISION:           'OP_DIVISION',
-    NEGATIVO:           'OP_NEGATIVO'
+    NEGATIVO:           'OP_NEGATIVO',
+    MENOR:              'OP_MENOR',
+    MAYOR:              'OP_MAYOR',
+    MAYORIGUAL:         'OP_MAYORIGUAL',
+    MENORIGUAL:         'OP_MENORIGUAL',
+    IGUALIGUAL:         'OP_IGUALIGUAL',
+    NOIGUAL:            'OP_NOIGUAL'
 }
 
 const TIPO_INSTRUCCIONES={
     IMPRIMIR:               'INST_IMPRIMIR',
-    DECLARACION:            'INST_DECLARACION'
+    DECLARACION:            'INST_DECLARACION',
+    FWHILE:                 'INST_WHILE',
+    FIF:                    'INST_IF',
+    ASIGNACION:             'INST_ASIGNACION'
 }
 
 const INSTRUCCIONES={
@@ -55,6 +64,28 @@ const INSTRUCCIONES={
     nuevaImprimir: function(expresion) {
         return{
             tipo:TIPO_INSTRUCCIONES.IMPRIMIR,
+            expresion:expresion
+        }
+    },
+    nuevaWhile: function(condicion, instrucciones) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.FWHILE,
+            condicion:condicion,
+            instrucciones:instrucciones
+        }
+    },
+    nuevaIf: function(condicion, cuerpoTrue,cuerpoFalse) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.FIF,
+            condicion:condicion,
+            cuerpoTrue:cuerpoTrue,
+            cuerpoFalse:cuerpoFalse
+        }
+    },
+    nuevaAsignacion: function(id, expresion) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.ASIGNACION,
+            id:id,
             expresion:expresion
         }
     }

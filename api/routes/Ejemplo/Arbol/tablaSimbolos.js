@@ -1,4 +1,7 @@
 //constante que retorna los tipos de datos 
+
+const { TIPO_VALOR } = require("./instrucciones");
+
 /**
  * en este se gurda el valor a diferencia del de istrucciones
  */
@@ -29,7 +32,13 @@ class TS{
         }else{
             if(tipo==valor.tipo){
                 //verificar los casteos implicitos osea que no sean obvios
-                this._simbolos.push(crearSimbolo(tipo,id,valor));
+                /**
+                 * if(tipo=="decimal" && valor.tipo=="int"){
+                 *      valor.tipo=="decimal";
+                 *      varor.valor==Number(valor.valor);
+                 * }
+                 */
+                this._simbolos.push(crearSimbolo(tipo,id,valor.valor));
             }else{
                 //si el casteo no existe
                 console.log('Error Semantico')
@@ -46,6 +55,57 @@ class TS{
             console.log('No existe la varialbe: '+id);
             return undefined;
         }
+    }
+    actualizar(id,nuevoVal){
+        var simbolo=this._simbolos.filter((simbolo)=>simbolo.id==id)[0];
+        if (simbolo) {
+            if (simbolo.tipo==nuevoVal.tipo) {
+                simbolo.valor=nuevoVal.valor;
+            }else{
+                //ver si hay casteos implisitos 6=3.7
+                //ejemplo double  a=3.5; a=true;  //a=1 
+                switch (simbolo.tipo) {
+                    case TIPO_VALOR.DECIMAL:
+                        switch (valor.tipo) {
+                            case TIPO_VALOR.BANDERA:
+                                if (valor.valor==true) {
+                                    simbolo.valor=1;
+                                }else if (valor.valor==false){
+                                    simbolo.valor=0;
+                                }
+                                break;
+                            case TIPO_VALOR.CADENA:
+                                console.log("no se puede asignar un tipo String a un Double")
+                                return;
+                        }
+                        break;
+                    case TIPO_VALOR.CADENA:
+                        switch (valor.tipo) {
+                            case TIPO_VALOR.BANDERA:
+                                console.log("no se puede asignar un tipo Boolean a un String")
+                                return;
+                            case TIPO_VALOR.DECIMAL:
+                                console.log("no se puede asignar un tipo Decimal a un String")
+                                return;
+                        } 
+                        break;
+                    case TIPO_VALOR.BANDERA:
+                        switch (valor.tipo) {
+                            case TIPO_VALOR.CADENA:
+                                console.log("no se puede asignar un tipo String a un Boolean")
+                                return;
+                            case TIPO_VALOR.DECIMAL:
+                                if (valor.valor==1) {
+                                    simbolo.valor=true;
+                                }else if (valor.valor==0){
+                                    simbolo.valor=false;
+                                }
+                                break;
+                        } 
+                        break;
+                }
+            }
+        } 
     }
     get simbos(){
         return this._simbolos;

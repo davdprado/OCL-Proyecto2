@@ -21,6 +21,10 @@
 "/"						return 'dividido';
 "^"						return 'elevado';
 "%"						return 'modular';
+"=="					return 'igualIgual';
+"!="					return 'diferente';
+"<="					return 'menorIgual';
+">="					return 'mayorIgual';
 "="						return 'igual';
 "!"						return 'nott';
 ":"						return 'dosPuntos';
@@ -29,10 +33,6 @@
 "<"						return 'menorQue';
 "?"						return 'pregunta';
 "."						return 'punto';
-"=="					return 'igualIgual';
-"!="					return 'diferente';
-"<="					return 'menorIgual';
-">="					return 'mayorIgual';
 "||"					return 'orr';
 "&&"					return 'andd';
 "("						return 'pIzq';
@@ -76,8 +76,8 @@
 
 //pueden faltar los -- o ++
 
-\"[^\"]*\"				{yytext=yytext.substr(1,yyleng-2); return 'cadenaaa';}
-\'[^\']?\'				return 'caracter';
+([\"]("\\\""|[^"])*[^\\][\"])|[\"][\"]				{yytext=yytext.substr(1,yyleng-2); return 'cadenaaa';}
+\'([^\']|"\\n"|"\\r"|"\\t")\'				return 'caracter';
 [0-9]+("."[  |0-9]+)?	return 'decimall';
 [0-9]+					return 'entero'; 
 ([a-zA-Z])[a-zA-Z0-9_]*	return 'identificador';
@@ -120,23 +120,38 @@ INICIO
 CUERPO
 	: CUERPO DECLARACION                    { $1.push($2);$$=$1;}
 	| CUERPO IMPRIMIR                       { $1.push($2);$$=$1;}
-	| CUERPO ASIGNACION
+	| CUERPO FUNCWHILE                      { $1.push($2);$$=$1;}
+	| CUERPO FUNCIF                       	{ $1.push($2);$$=$1;}
+	| CUERPO ASIGNACION						{ $1.push($2);$$=$1;}
+	| ASIGNACION							{ $$=[$1];}
 	| DECLARACION                           { $$=[$1];}//sin tener que retornar arraylist solo un arreglo
-	| ASIGNACION
-	| IMPRIMIR                              { $$=[$1];};
+	| IMPRIMIR                              { $$=[$1];}
+	| FUNCWHILE								{$$=[$1];}
+	| FUNCIF								{$$=[$1];};
 //aqui iran como el while, if, etc
 DECLARACION
 	: TIPO identificador igual EXP pyc      { $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,$4); }
 	| TIPO identificador pyc                { $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,undefined); };
 
 ASIGNACION
-	:identificador igual EXP pyc;
+	:identificador igual EXP pyc 			{$$=INSTRUCCIONES.nuevaAsignacion($1,$3);};
+
+//si lo manejo asi tengo que validar que el valor que retorne EXP sea tipo bandera
+FUNCWHILE
+	: sentenciaWhile pIzq EXP pDer llaveIzq CUERPO llaveDer {$$=INSTRUCCIONES.nuevaWhile($3,$6);};
+
+FUNCIF
+	:sentenciaIf pIzq EXP pDer  llaveIzq CUERPO llaveDer sentenciaElse llaveIzq CUERPO llaveDer {$$=INSTRUCCIONES.nuevaIf($3,$6,$10);}
+	|sentenciaIf pIzq EXP pDer  llaveIzq CUERPO llaveDer {$$=INSTRUCCIONES.nuevaIf($3,$6,undefined);};
 
 IMPRIMIR 
 	: imprimir pIzq EXP pDer pyc    { $$=INSTRUCCIONES.nuevaImprimir($3);};
 
 CASTEO
 	: pIzq TIPO pDer EXP %prec UCASTEO;
+
+
+
 
 TIPO
 	: tipoDouble                    { $$=TIPO_DATO.DECIMAL; }
@@ -150,6 +165,12 @@ EXP
 	| EXP menos EXP                 {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.RESTA,$1,$3);}                             
 	| EXP por EXP                   {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.MULTIPLICACION,$1,$3);}
 	| EXP dividido EXP              {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.DIVISION,$1,$3);}
+	| EXP igualIgual EXP                 {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.IGUALIGUAL,$1,$3);}
+	| EXP mayorQue EXP                 {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.MAYOR,$1,$3);}
+	| EXP menorQue EXP                 {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.MENOR,$1,$3);}
+	| EXP mayorIgual EXP                 {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.MAYORIGUAL,$1,$3);}
+	| EXP menorIgual EXP                 {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.MENORIGUAL,$1,$3);}
+	| EXP diferente EXP                 {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.NOIGUAL,$1,$3);}
 	| menos EXP %prec UMENOS        {$$=INSTRUCCIONES.nuevaOperacionUnaria(TIPO_OPERACION.NEGATIVO,$2);}
 	| pIzq EXP pDer                 {$$=$2}
     | CASTEO
