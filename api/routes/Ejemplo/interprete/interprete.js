@@ -30,8 +30,8 @@ function ejecutar(arbol) {
                         }else{
                             valoresMetodos.push(valor);
                         }
-                    }
-                    var tslocal2 = new TS(tslocal._simbolos); //agrega los simbolos acutales y parametros con referencia a la acutal
+                    }//agrega los valores a los metodos
+                    var tslocal2 = new TS([]); //agrega los simbolos acutales y parametros con referencia a la acutal
                     for (var contador = 0; contador < main[0].parametros.length; contador++) {
                         tslocal2.agregar(valoresMetodos[contador].tipo,meto2.parametros[contador].id,valoresMetodos[contador]);
                         //aqui agregamos los parametros del metodo
@@ -163,6 +163,7 @@ function ejecutarWhile(instruccion,tsglobal,tslocal,metodos) {
 }
 
 function ejecutarDeclaracionGlobal(instruccion,tsglobal,tslocal,metodos) {
+
     var valor = procesarExpresion(instruccion.expresion,tsglobal,tslocal,metodos);
     tsglobal.agregar(instruccion.tipo_dato,instruccion.id,valor);
 }

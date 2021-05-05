@@ -136,12 +136,14 @@ CUERPO2
 	| CUERPO2 FUNCIF                       	{ $1.push($2);$$=$1;}
 	| CUERPO2 LLAMADA 						{ $1.push($2); $$=$1; }
 	| CUERPO2 ASIGNACION					{ $1.push($2);$$=$1;}
+	| CUERPO2 BREAKK						
 	| ASIGNACION							{ $$=[$1];}
 	| DECLARACION                           { $$=[$1];}//sin tener que retornar arraylist solo un arreglo
 	| IMPRIMIR                              { $$=[$1];}
 	| FUNCWHILE								{$$=[$1];}
 	| LLAMADA								{$$=[$1];}
-	| FUNCIF								{$$=[$1];};	
+	| FUNCIF								{$$=[$1];}
+	| BREAKK								;	
 
 	
 //aqui iran como el while, if, etc
@@ -187,7 +189,8 @@ IMPRIMIR
 CASTEO
 	: pIzq TIPO pDer EXP %prec UCASTEO;
 
-
+BREAKK
+	: romper pyc;
 
 
 TIPO
