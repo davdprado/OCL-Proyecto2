@@ -117,18 +117,55 @@
 INICIO
 	: CUERPO EOF { return $1; console.log('Funciono');};
 
+
 CUERPO
 	: CUERPO DECLARACION                    { $1.push($2);$$=$1;}
-	| CUERPO IMPRIMIR                       { $1.push($2);$$=$1;}
-	| CUERPO FUNCWHILE                      { $1.push($2);$$=$1;}
-	| CUERPO FUNCIF                       	{ $1.push($2);$$=$1;}
 	| CUERPO ASIGNACION						{ $1.push($2);$$=$1;}
+	| CUERPO METODO							{ $1.push($2);$$=$1;}
+	| CUERPO MAIN							{ $1.push($2);$$=$1;}
+	| METODO								{ $$=[$1];}
+	| ASIGNACION							{ $$=[$1];}
+	| DECLARACION                           { $$=[$1];}
+	| MAIN									{ $$=[$1];};
+
+
+CUERPO2
+	: CUERPO2 DECLARACION                   { $1.push($2);$$=$1;}
+	| CUERPO2 IMPRIMIR                      { $1.push($2);$$=$1;}
+	| CUERPO2 FUNCWHILE                     { $1.push($2);$$=$1;}
+	| CUERPO2 FUNCIF                       	{ $1.push($2);$$=$1;}
+	| CUERPO2 LLAMADA 						{ $1.push($2); $$=$1; }
+	| CUERPO2 ASIGNACION					{ $1.push($2);$$=$1;}
 	| ASIGNACION							{ $$=[$1];}
 	| DECLARACION                           { $$=[$1];}//sin tener que retornar arraylist solo un arreglo
 	| IMPRIMIR                              { $$=[$1];}
 	| FUNCWHILE								{$$=[$1];}
-	| FUNCIF								{$$=[$1];};
+	| LLAMADA								{$$=[$1];}
+	| FUNCIF								{$$=[$1];};	
+
+	
 //aqui iran como el while, if, etc
+MAIN
+	: ejecutar identificador pIzq VALORESLLAMADA pDer pyc {$$=INSTRUCCIONES.nuevoMain($2, $4);}
+    | ejecutar identificador pIzq pDer pyc {$$=INSTRUCCIONES.nuevoMain($2, []);};
+
+VALORESLLAMADA
+    : VALORESLLAMADA comaa EXP {$1.push($3); $$=$1;}
+    | EXP {$$=[$1];};
+
+LLAMADA
+    : identificador pIzq VALORESLLAMADA pDer pyc {$$=INSTRUCCIONES.nuevaLlamada($1, $3);}
+    | identificador pIzq pDer pyc {$$=INSTRUCCIONES.nuevaLlamada($1, []);};
+
+METODO
+	: tipoVoid identificador pIzq PARAMETROS pDer llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevoMetodo($2,$4,$7);}
+	| tipoVoid identificador pIzq pDer llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevoMetodo($2,[],$6);};
+
+PARAMETROS
+	: PARAMETROS comaa TIPO identificador		{$1.push(INSTRUCCIONES.nuevoParametro($3,$4));$$=$1;}
+	| TIPO identificador						{$$=[INSTRUCCIONES.nuevoParametro($1,$2)];};				
+
+
 DECLARACION
 	: TIPO identificador igual EXP pyc      { $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,$4); }
 	| TIPO identificador pyc                { $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,undefined); };
@@ -138,11 +175,11 @@ ASIGNACION
 
 //si lo manejo asi tengo que validar que el valor que retorne EXP sea tipo bandera
 FUNCWHILE
-	: sentenciaWhile pIzq EXP pDer llaveIzq CUERPO llaveDer {$$=INSTRUCCIONES.nuevaWhile($3,$6);};
+	: sentenciaWhile pIzq EXP pDer llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevaWhile($3,$6);};
 
 FUNCIF
-	:sentenciaIf pIzq EXP pDer  llaveIzq CUERPO llaveDer sentenciaElse llaveIzq CUERPO llaveDer {$$=INSTRUCCIONES.nuevaIf($3,$6,$10);}
-	|sentenciaIf pIzq EXP pDer  llaveIzq CUERPO llaveDer {$$=INSTRUCCIONES.nuevaIf($3,$6,undefined);};
+	:sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer sentenciaElse llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevaIf($3,$6,$10);}
+	|sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevaIf($3,$6,undefined);};
 
 IMPRIMIR 
 	: imprimir pIzq EXP pDer pyc    { $$=INSTRUCCIONES.nuevaImprimir($3);};

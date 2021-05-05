@@ -21,14 +21,15 @@ function crearSimbolo(tipo,id,valor) {//agregar despues linea y columan
 
 class TS{
     constructor(simbolos) {
-        this._simbolos=simbolos; 
+        this._simbolos=[]; 
+        this._simbolos.push(simbolos);
     }
     agregar(tipo,id,valor){
         //verificar si ya existe la variable
         var simbolo=this._simbolos.filter((simbolo)=>simbolo.id==id)[0];
         if (simbolo) {
             //manejo si ya existe la variable
-            console.log("la variable ya existe");
+            console.log("la variable \""+simbolo.id+"\" ya existe");
         }else{
             if(tipo==valor.tipo){
                 //verificar los casteos implicitos osea que no sean obvios
@@ -41,7 +42,7 @@ class TS{
                 this._simbolos.push(crearSimbolo(tipo,id,valor.valor));
             }else{
                 //si el casteo no existe
-                console.log('Error Semantico')
+                console.log('Error Semantico se espera tipo: '+tipo +' en \"'+id+ '\" que es de tipo: '+valor.tipo);
             }
         }
         
@@ -52,7 +53,7 @@ class TS{
             return simbolo;
         }else{
             //manejar lo que no existe
-            console.log('No existe la varialbe: '+id);
+            console.log('No existe la variable: '+id);
             return undefined;
         }
     }

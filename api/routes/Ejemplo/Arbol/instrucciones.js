@@ -29,7 +29,10 @@ const TIPO_INSTRUCCIONES={
     DECLARACION:            'INST_DECLARACION',
     FWHILE:                 'INST_WHILE',
     FIF:                    'INST_IF',
-    ASIGNACION:             'INST_ASIGNACION'
+    ASIGNACION:             'INST_ASIGNACION',
+    METODO:                 'INST_METODO',
+    MAIN:                   'INST_MAIN',
+    LLAMADA:                'INST_LLAMADA'
 }
 
 const INSTRUCCIONES={
@@ -88,7 +91,36 @@ const INSTRUCCIONES={
             id:id,
             expresion:expresion
         }
+    },
+    nuevoMetodo: function(id,parametros,instrucciones) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.METODO,
+            id:id,
+            parametros:parametros,
+            instrucciones:instrucciones
+        }
+    },
+    nuevoMain: function(id,parametros) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.MAIN,
+            id:id,
+            parametros:parametros
+        }
+    },
+    nuevoParametro(tipo,id){
+        return{
+            tipo: tipo,
+            id:id
+        }
+    },
+    nuevaLlamada: function(id,parametros) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.LLAMADA,
+            id:id,
+            parametros:parametros
+        }
     }
+
 }
 
 module.exports.TIPO_VALOR=TIPO_VALOR;
