@@ -181,7 +181,8 @@ FUNCWHILE
 
 FUNCIF
 	:sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer sentenciaElse llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevaIf($3,$6,$10);}
-	|sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevaIf($3,$6,undefined);};
+	|sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevaIf($3,$6,undefined);}
+	|sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer sentenciaElse FUNCIF {$$=INSTRUCCIONES.nuevaIf($3,$6,[$9]);};
 
 IMPRIMIR 
 	: imprimir pIzq EXP pDer pyc    { $$=INSTRUCCIONES.nuevaImprimir($3);};

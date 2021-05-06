@@ -22,7 +22,7 @@ function crearSimbolo(tipo,id,valor) {//agregar despues linea y columan
 class TS{
     constructor(simbolos) {
         this._simbolos=[]; 
-        this._simbolos.push(simbolos);
+        this._simbolos = this._simbolos.concat(simbolos);
     }
     agregar(tipo,id,valor){
         //verificar si ya existe la variable
