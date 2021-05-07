@@ -1,12 +1,22 @@
 //ponemos los tipos de valores que tenemos
+
+const { TIPO_DATO } = require("./tablaSimbolos")
+
 /**
  * sierve para hacer las operaciones
  */
+const TIPO_ERROR={
+    LEXICO:         'ERROR_LEXICO',
+    SINTACTICO:     'ERROR_SINTACTICO',
+    SEMANTICO:      'ERROR_SEMANTICO'
+}
 const TIPO_VALOR={
     DECIMAL:        'VAL_DECIMAL', 
     CADENA:         'VAL_CADENA',
     IDENTIFICADOR:  'VAL_IDENTIFICADOR',
-    BANDERA:        'VAL_BANDERA'
+    BANDERA:        'VAL_BANDERA',
+    ENTERO:         'VAL_ENTERO',
+    CARACTER:       'VAL_CARACTER'
 }
 
 //TIPOS DE OPERACIONES QUE HAY
@@ -15,13 +25,18 @@ const TIPO_OPERACION={
     RESTA:              'OP_RESTA',
     MULTIPLICACION:     'OP_MULTIPLICACION',
     DIVISION:           'OP_DIVISION',
+    MODULAR:            'OP_MOD',
+    POTENCIA:           'OP_POTENCIA',
     NEGATIVO:           'OP_NEGATIVO',
     MENOR:              'OP_MENOR',
     MAYOR:              'OP_MAYOR',
     MAYORIGUAL:         'OP_MAYORIGUAL',
     MENORIGUAL:         'OP_MENORIGUAL',
     IGUALIGUAL:         'OP_IGUALIGUAL',
-    NOIGUAL:            'OP_NOIGUAL'
+    NOIGUAL:            'OP_NOIGUAL',
+    ORR:                'OP_OR',
+    ANDD:               'OP_AND',
+    NOTT:               'OP_NOT'
 }
 
 const TIPO_INSTRUCCIONES={
@@ -32,7 +47,8 @@ const TIPO_INSTRUCCIONES={
     ASIGNACION:             'INST_ASIGNACION',
     METODO:                 'INST_METODO',
     MAIN:                   'INST_MAIN',
-    LLAMADA:                'INST_LLAMADA'
+    LLAMADA:                'INST_LLAMADA',
+    BREAKK:                 'INST_BREAK'
 }
 
 const INSTRUCCIONES={
@@ -57,12 +73,70 @@ const INSTRUCCIONES={
         }
     },
     nuevaDeclaracion: function(tipo,id,expresion) {
-        return{
-            tipo:TIPO_INSTRUCCIONES.DECLARACION,
-            tipo_dato:tipo,
-            id:id,
-            expresion: expresion
+        if (!expresion) {
+            switch (tipo) {
+                case TIPO_VALOR.ENTERO:
+                    return{
+                        tipo:TIPO_INSTRUCCIONES.DECLARACION,
+                        tipo_dato:tipo,
+                        id:id,
+                        expresion: {
+                            tipo: TIPO_VALOR.ENTERO,
+                            valor:0
+                        }
+                    }
+                case TIPO_VALOR.DECIMAL:
+                    return{
+                        tipo:TIPO_INSTRUCCIONES.DECLARACION,
+                        tipo_dato:tipo,
+                        id:id,
+                        expresion: {
+                            tipo: TIPO_VALOR.DECIMAL,
+                            valor:0.0
+                        }
+                    }
+                case TIPO_VALOR.BANDERA:
+                    return{
+                        tipo:TIPO_INSTRUCCIONES.DECLARACION,
+                        tipo_dato:tipo,
+                        id:id,
+                        expresion: {
+                            tipo: TIPO_VALOR.BANDERA,
+                            valor:true
+                        }
+                    }
+                case TIPO_VALOR.CADENA:
+                    var temp ="";
+                    return{
+                        tipo:TIPO_INSTRUCCIONES.DECLARACION,
+                        tipo_dato:tipo,
+                        id:id,
+                        expresion: {
+                            tipo: TIPO_VALOR.CADENA,
+                            valor:temp
+                        }
+                    }
+                case TIPO_VALOR.CARACTER:
+                    var temp2 ='';
+                    return{
+                        tipo:TIPO_INSTRUCCIONES.DECLARACION,
+                        tipo_dato:tipo,
+                        id:id,
+                        expresion: {
+                            tipo: TIPO_VALOR.CARACTER,
+                            valor:temp2
+                        }
+                    }
+            }
+        }else{
+            return{
+                tipo:TIPO_INSTRUCCIONES.DECLARACION,
+                tipo_dato:tipo,
+                id:id,
+                expresion: expresion
+            }
         }
+        
     },
     nuevaImprimir: function(expresion) {
         return{
@@ -119,6 +193,11 @@ const INSTRUCCIONES={
             id:id,
             parametros:parametros
         }
+    },
+    nuevoBreak: function() {
+        return{
+            tipo:TIPO_INSTRUCCIONES.BREAKK
+        }
     }
 
 }
@@ -127,3 +206,4 @@ module.exports.TIPO_VALOR=TIPO_VALOR;
 module.exports.TIPO_INSTRUCCIONES=TIPO_INSTRUCCIONES;
 module.exports.TIPO_OPERACION=TIPO_OPERACION;
 module.exports.INSTRUCCIONES=INSTRUCCIONES;
+module.exports.TIPO_ERROR=TIPO_ERROR;

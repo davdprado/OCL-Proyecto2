@@ -26,7 +26,6 @@ window.addEventListener('load', openArchivo, false);
         })
         .catch(err=>console.log(err));    
     }
-
     function enviarData() {
         fetch(url+'/compilar',{
             method: 'POST',
@@ -40,6 +39,24 @@ window.addEventListener('load', openArchivo, false);
         .then(response=>response.json())
         .then(data=>{
             document.getElementById('consolita').value=data.respuesta;
+            const tablaE =document.querySelector("#TablaErrores");
+            tablas(data.error,tablaE);
         })
         .catch(err=>console.log(err)); 
+    }
+    function tablas(datos,tabla) {
+        tabla.innerHTML="";
+        console.log(datos);
+        var contador=0;
+        for(let valor of datos){
+            contador++;
+            tabla.innerHTML+=`
+            <tr>
+                <th scope="row">${contador}</th>
+                <td>${valor.tipo}</td>
+                <td>${valor.descripcion}</td>
+                <td>${valor.linea}</td>
+                <td>${valor.col}</td>
+            </tr>`;
+        }
     }

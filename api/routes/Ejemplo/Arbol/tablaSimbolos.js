@@ -8,7 +8,9 @@ const { TIPO_VALOR } = require("./instrucciones");
 const TIPO_DATO={
     DECIMAL:        'VAL_DECIMAL',
     CADENA:         'VAL_CADENA',
-    BANDERA:        'VAL_BANDERA'
+    BANDERA:        'VAL_BANDERA',
+    ENTERO:         'VAL_ENTERO',
+    CARACTER:       'VAL_CARACTER',
 }
 
 function crearSimbolo(tipo,id,valor) {//agregar despues linea y columan
@@ -41,8 +43,40 @@ class TS{
                  */
                 this._simbolos.push(crearSimbolo(tipo,id,valor.valor));
             }else{
-                //si el casteo no existe
-                console.log('Error Semantico se espera tipo: '+tipo +' en \"'+id+ '\" que es de tipo: '+valor.tipo);
+                
+                switch (tipo) {
+                    case TIPO_DATO.DECIMAL:
+                        switch (valor.tipo) {
+                            case TIPO_DATO.ENTERO:
+                                this._simbolos.push(crearSimbolo(tipo,id,valor.valor));
+                                break;
+                            default: //si el casteo no existe
+                                console.log('Error Semantico se espera tipo: '+tipo +' en \"'+id+ '\" que es de tipo: '+valor.tipo);
+                                break;
+                        }
+                        break;
+                    case TIPO_DATO.ENTERO:
+                        switch (valor.tipo) {
+                            case TIPO_DATO.DECIMAL:
+                                this._simbolos.push(crearSimbolo(tipo,id,valor.valor));
+                                break;
+                            default: //si el casteo no existe
+                                console.log('Error Semantico se espera tipo: '+tipo +' en \"'+id+ '\" que es de tipo: '+valor.tipo);
+                                break;
+                        }
+                        break;
+                    case TIPO_DATO.CADENA:
+                        if (valor.tipo==TIPO_DATO.CARACTER) {
+                            this._simbolos.push(crearSimbolo(tipo,id,String(valor.valor)));
+                        } else {
+                            console.log('Error Semantico se espera tipo: '+tipo +' en \"'+id+ '\" que es de tipo: '+valor.tipo);
+                        }
+                        break;
+                    default: //si el casteo no existe
+                        console.log('Error Semantico se espera tipo: '+tipo +' en \"'+id+ '\" que es de tipo: '+valor.tipo);
+                        break;
+                }
+                
             }
         }
         
@@ -57,51 +91,81 @@ class TS{
             return undefined;
         }
     }
-    actualizar(id,nuevoVal){
+    actualizar(id,valor){
+        console.log(id);
+        console.log(valor);
         var simbolo=this._simbolos.filter((simbolo)=>simbolo.id==id)[0];
+        console.log(simbolo);
         if (simbolo) {
-            if (simbolo.tipo==nuevoVal.tipo) {
-                simbolo.valor=nuevoVal.valor;
+            if (simbolo.tipo==valor.tipo) {
+                console.log('entra con '+id+' y valor '+valor.valor);
+                simbolo.valor=valor.valor;
             }else{
                 //ver si hay casteos implisitos 6=3.7
                 //ejemplo double  a=3.5; a=true;  //a=1 
                 switch (simbolo.tipo) {
-                    case TIPO_VALOR.DECIMAL:
-                        switch (valor.tipo) {
-                            case TIPO_VALOR.BANDERA:
+                    case TIPO_DATO.ENTERO:
+                        switch(valor.tipo){
+                            case TIPO_DATO.DECIMAL:
+                                simbolo.valor=valor.valor;
+                                break;
+                            case TIPO_DATO.BANDERA:
                                 if (valor.valor==true) {
                                     simbolo.valor=1;
                                 }else if (valor.valor==false){
                                     simbolo.valor=0;
                                 }
                                 break;
-                            case TIPO_VALOR.CADENA:
-                                console.log("no se puede asignar un tipo String a un Double")
+                            default:
+                                console.log('No se puede asignar un '+valor.tipo+' a un '+simbolo.tipo);
+                                return;
+                        }
+                    case TIPO_DATO.DECIMAL:
+                        switch (valor.tipo) {
+                            case TIPO_DATO.ENTERO:
+                                simbolo.valor=valor.valor;
+                                break;
+                            case TIPO_DATO.BANDERA:
+                                if (valor.valor==true) {
+                                    simbolo.valor=1;
+                                }else if (valor.valor==false){
+                                    simbolo.valor=0;
+                                }
+                                break;
+                            default:
+                                console.log('No se puede asignar un '+valor.tipo+' a un '+simbolo.tipo);
                                 return;
                         }
                         break;
-                    case TIPO_VALOR.CADENA:
+                    case TIPO_DATO.CADENA:
                         switch (valor.tipo) {
-                            case TIPO_VALOR.BANDERA:
-                                console.log("no se puede asignar un tipo Boolean a un String")
-                                return;
-                            case TIPO_VALOR.DECIMAL:
-                                console.log("no se puede asignar un tipo Decimal a un String")
+                            case TIPO_DATO.CARACTER:
+                                simbolo.valor=String(valor.valor);
+                            break;
+                            default:
+                                console.log('No se puede asignar un '+valor.tipo+' a un '+simbolo.tipo);
                                 return;
                         } 
                         break;
-                    case TIPO_VALOR.BANDERA:
+                    case TIPO_DATO.BANDERA:
                         switch (valor.tipo) {
-                            case TIPO_VALOR.CADENA:
-                                console.log("no se puede asignar un tipo String a un Boolean")
-                                return;
-                            case TIPO_VALOR.DECIMAL:
+                            case TIPO_DATO.DECIMAL:
                                 if (valor.valor==1) {
                                     simbolo.valor=true;
                                 }else if (valor.valor==0){
                                     simbolo.valor=false;
                                 }
                                 break;
+                            case TIPO_DATO.ENTERO:
+                                if (valor.valor==1) {
+                                    simbolo.valor=true;
+                                }else if (valor.valor==0){
+                                    simbolo.valor=false;
+                                }
+                                break;
+                            default:
+                                console.log('No se puede asignar un '+valor.tipo+' a un '+simbolo.tipo);
+                                return;
                         } 
                         break;
                 }

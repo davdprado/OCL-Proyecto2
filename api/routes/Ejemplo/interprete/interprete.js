@@ -6,6 +6,7 @@ const TIPO_DATO = require('../Arbol/tablaSimbolos').TIPO_DATO;
 const TS = require('../Arbol/tablaSimbolos').TS;
 
 let salida='';
+let listaerrores=[];
 
 function ejecutar(arbol) {
     salida='';
@@ -45,7 +46,10 @@ function ejecutar(arbol) {
             }
         });
     }
-    return salida;
+    return{
+        salida:salida,
+        errores:listaerrores
+    }
 }
 //DA UNA PASADA A TODO EL CODIGO PARA GUARADAR LOS METODOS Y FUNCIONES
 function ejecutarBloqueGlobal(instrucciones,tsglobal,tslocal,metodos,main) {
@@ -65,7 +69,8 @@ function ejecutarBloqueGlobal(instrucciones,tsglobal,tslocal,metodos,main) {
 }
 
 function ejecutarBloqueLocal(instrucciones,tsglobal,tslocal,metodos) {
-    instrucciones.forEach((instruccion) => {
+    for (let i = 0; i < instrucciones.length; i++) {
+        var instruccion = instrucciones[i];
         if(instruccion.tipo==TIPO_INSTRUCCIONES.DECLARACION){
             //codigo para la declaracion
             ejecutarDeclaracionLocal(instruccion,tsglobal,tslocal,metodos);
@@ -79,15 +84,24 @@ function ejecutarBloqueLocal(instrucciones,tsglobal,tslocal,metodos) {
         }else if (instruccion.tipo==TIPO_INSTRUCCIONES.FIF) {
             //codigo para if
             var tslocal2=new TS(tslocal._simbolos);
-            ejecutarIf(instruccion,tsglobal,tslocal2,metodos);
+            var posibleretorno= ejecutarIf(instruccion,tsglobal,tslocal2,metodos);
+            if (posibleretorno) {
+                return posibleretorno;
+            }
         }else if (instruccion.tipo==TIPO_INSTRUCCIONES.ASIGNACION) {
             //codigo para Asignacion
             ejecutarAsignacionLocal(instruccion,tsglobal,tslocal,metodos);
         }else if (instruccion.tipo==TIPO_INSTRUCCIONES.LLAMADA) {
             //codigo para llamada de metodos o funciones
             ejecutarLlamada(instruccion,tsglobal,tslocal,metodos);
+        }else if (instruccion.tipo==TIPO_INSTRUCCIONES.BREAKK) {
+            //break me el mismo paso para el return y el continue
+            return{
+                tipo_resultado: TIPO_INSTRUCCIONES.BREAKK,
+                resultado:undefined
+            }
         }
-    });
+    }
 }
 
 
@@ -146,10 +160,10 @@ function ejecutarAsignacionLocal(instruccion,tsglobal,tslocal,metodos) {
 function ejecutarIf(instruccion,tsglobal,tslocal,metodos) {
     var valor = procesarExpresion(instruccion.condicion,tsglobal,tslocal,metodos);
     if (valor.valor==true) {
-        ejecutarBloqueLocal(instruccion.cuerpoTrue,tsglobal,tslocal,metodos);
+        return ejecutarBloqueLocal(instruccion.cuerpoTrue,tsglobal,tslocal,metodos);
     }else if (valor.valor==false){
         if (instruccion.cuerpoFalse!=undefined) {
-            ejecutarBloqueLocal(instruccion.cuerpoFalse,tsglobal,tslocal,metodos);
+            return ejecutarBloqueLocal(instruccion.cuerpoFalse,tsglobal,tslocal,metodos);
         }
     }
 }
@@ -157,7 +171,17 @@ function ejecutarIf(instruccion,tsglobal,tslocal,metodos) {
 function ejecutarWhile(instruccion,tsglobal,tslocal,metodos) {
     var valor = procesarExpresion(instruccion.condicion,tsglobal,tslocal,metodos);
     while (valor.valor) {
-        ejecutarBloqueLocal(instruccion.instrucciones,tsglobal,tslocal,metodos);
+        var posiblevalor = ejecutarBloqueLocal(instruccion.instrucciones,tsglobal,tslocal,metodos);
+        if (posiblevalor) {
+            if (posiblevalor.tipo_resultado==TIPO_INSTRUCCIONES.BREAKK) {
+                break;
+                /**
+                 * si es un return{
+                 * devolver el resultado 
+                 * }
+                 */
+            }
+        }
         valor= procesarExpresion(instruccion.condicion,tsglobal,tslocal,metodos);
     }
 }
@@ -176,7 +200,6 @@ function ejecutarDeclaracionLocal(instruccion,tsglobal,tslocal,metodos) {
 function ejecutarImprimir(instruccion,tsglobal,tslocal,metodos) {
     var valor = procesarExpresion(instruccion.expresion,tsglobal,tslocal,metodos);
     salida +=valor.valor+'\n';
-    console.log(valor);
 }
 
 //funcion para procesar instruccion por cada instruccion
@@ -184,59 +207,339 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
     if (expresion.tipo==TIPO_OPERACION.SUMA) { 
         var valorizq = procesarExpresion(expresion.operanIzq,tsglobal,tslocal,metodos);
         var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
-
-        //tipos de resultados y su retorno
-        if (valorizq.tipo==TIPO_DATO.DECIMAL && valorder.tipo==TIPO_DATO.DECIMAL) {
-            return{
-                tipo:TIPO_DATO.DECIMAL,
-                valor:valorizq.valor+valorder.valor
-            };
-
-        }else if (valorizq.tipo==TIPO_DATO.CADENA && valorder.tipo==TIPO_DATO.DECIMAL) {
-            return{
-                tipo:TIPO_DATO.CADENA,
-                valor:valorizq.valor+String(valorder.valor)
-            };
-        }else if (valorizq.tipo==TIPO_DATO.DECIMAL && valorder.tipo==TIPO_DATO.CADENA) {
-            return{
-                tipo:TIPO_DATO.CADENA,
-                valor:String(valorizq.valor)+valorder.valor
-            };
-        }else if (valorizq.tipo==TIPO_DATO.CADENA && valorder.tipo==TIPO_DATO.CADENA) {
-            return{
-                tipo:TIPO_DATO.CADENA,
-                valor:valorizq.valor+valorder.valor
-            };
-        }else if (valorizq.tipo==TIPO_DATO.BANDERA && valorder.tipo==TIPO_DATO.BANDERA) {
-            return{
-                tipo:TIPO_DATO.BANDERA,
-                valor:valorizq.valor+valorder.valor
-            };
-        }else if (valorizq.tipo==TIPO_DATO.CADENA && valorder.tipo==TIPO_DATO.BANDERA) {
-            return{
-                tipo:TIPO_DATO.CADENA, 
-                valor:valorizq.valor+String(valorder.valor)
-            };
-        }else{
-            //error semantico 
-            console.log('Error Semantico los tipos no se pueden sumar');
-            return undefined;
+        switch (valorizq.tipo) {
+            case TIPO_DATO.ENTERO:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.ENTERO,
+                            valor:valorizq.valor+valorder.valor
+                        };
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor+valorder.valor
+                        };
+                    case TIPO_DATO.BANDERA:
+                        if (valorder.valor==true) {
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:valorizq.valor+1
+                            };
+                        }else if (valorder.valor==false){
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:valorizq.valor
+                            };
+                        }else{
+                            console.log('solo se puede operar con true=1 y false=0')
+                        }
+                        break;
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.ENTERO,
+                            valor:valorizq.valor+valorder.valor.charCodeAt(0)
+                        };
+                    case TIPO_DATO.CADENA:
+                        return{
+                            tipo:TIPO_DATO.CADENA,
+                            valor:String(valorizq.valor)+valorder.valor
+                        };
+                }
+                break;
+            case TIPO_DATO.DECIMAL:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor+valorder.valor
+                        };
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor+valorder.valor
+                        };
+                    case TIPO_DATO.BANDERA:
+                        if (valorder.valor==true) {
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor+1
+                            };
+                        }else if (valorder.valor==false){
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor
+                            };
+                        }else{
+                            console.log('solo se puede operar con true=1 y false=0')
+                        }
+                        break;
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor+Number(valorder.valor.charCodeAt(0))
+                        };
+                    case TIPO_DATO.CADENA:
+                        return{
+                            tipo:TIPO_DATO.CADENA,
+                            valor:String(valorizq.valor)+valorder.valor
+                        };
+                }
+                break;
+            case TIPO_DATO.BANDERA:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        if (valorizq.valor==true) {
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:1+valorder.valor
+                            };
+                        }else if (valorizq.valor==false){
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:valorder.valor
+                            };
+                        }else{
+                            console.log('solo se puede operar con true=1 y false=0')
+                        }
+                    break;
+                    case TIPO_DATO.DECIMAL:
+                        if (valorizq.valor==true) {
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:1+valorder.valor
+                            };
+                        }else if (valorizq.valor==false){
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorder.valor
+                            };
+                        }else{
+                            console.log('solo se puede operar con true=1 y false=0')
+                        }
+                    break;
+                    case TIPO_DATO.BANDERA:
+                        console.log('Booleano no puede sumarse con '+TIPO_DATO.BANDERA);
+                        break;
+                    case TIPO_DATO.CARACTER:
+                        console.log('Booleano no puede sumarse con '+valorder.tipo);
+                        break;
+                    case TIPO_DATO.CADENA:
+                        return{
+                            tipo:TIPO_DATO.CADENA,
+                            valor:String(valorizq.valor)+valorder.valor
+                        };
+                }
+                break;
+            case TIPO_DATO.CARACTER:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.ENTERO,
+                            valor:valorizq.valor.charCodeAt(0)+valorder.valor
+                        };
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor.charCodeAt(0)+valorder.valor
+                        };
+                    case TIPO_DATO.BANDERA:
+                        console.log('no se puede sumar '+valorizq.tipo+' con '+valorder.tipo);
+                        break;
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.CADENA,
+                            valor:String(valorizq.valor+valorder.valor)
+                        };
+                    case TIPO_DATO.CADENA:
+                        return{
+                            tipo:TIPO_DATO.CADENA,
+                            valor:String(valorizq.valor+valorder.valor)
+                        };
+                }
+                break;
+            case TIPO_DATO.CADENA:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.CADENA,
+                            valor:valorizq.valor+String(valorder.valor)
+                        };
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.CADENA,
+                            valor:valorizq.valor+String(valorder.valor)
+                        };
+                    case TIPO_DATO.BANDERA:
+                        return{
+                            tipo:TIPO_DATO.CADENA,
+                            valor:valorizq.valor+String(valorder.valor)
+                        }
+                        break;
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.ENTERO,
+                            valor:valorizq.valor+String(valorder.valor)
+                        };
+                    case TIPO_DATO.CADENA:
+                        return{
+                            tipo:TIPO_DATO.CADENA,
+                            valor:valorizq.valor+String(valorder.valor)
+                        };
+                }
+                break;
+            default:
+                console.log('no se pueden sumar los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                break;
         }
     }else if (expresion.tipo==TIPO_OPERACION.RESTA) { //resta
         var valorizq = procesarExpresion(expresion.operanIzq,tsglobal,tslocal,metodos);
         var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
 
-        //tipos de resultados y su retorno
-        if (valorizq.tipo==TIPO_DATO.DECIMAL && valorder.tipo==TIPO_DATO.DECIMAL) {
-            return{
-                tipo:TIPO_DATO.DECIMAL,
-                valor:valorizq.valor-valorder.valor
-            };
-
-        }else{
-            //error semantico 
-            console.log('Error Semantico los tipos no se pueden restar');
-            return undefined;
+        switch (valorizq.tipo) {
+            case TIPO_DATO.ENTERO:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.ENTERO,
+                            valor:valorizq.valor-valorder.valor
+                        };
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor-valorder.valor
+                        };
+                    case TIPO_DATO.BANDERA:
+                        if (valorder.valor==true) {
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:valorizq.valor-1
+                            };
+                        }else if (valorder.valor==false){
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:valorizq.valor
+                            };
+                        }else{
+                            console.log('solo se puede operar con true=1 y false=0')
+                        }
+                        break;
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.ENTERO,
+                            valor:valorizq.valor-valorder.valor.charCodeAt(0)
+                        };
+                    case TIPO_DATO.CADENA:
+                        console.log('no se pueden restar los Entero con '+valorder.tipo);
+                        break;
+                }
+                break;
+            case TIPO_DATO.DECIMAL:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor-valorder.valor
+                        };
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor-valorder.valor
+                        };
+                    case TIPO_DATO.BANDERA:
+                        if (valorder.valor==true) {
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor-1
+                            };
+                        }else if (valorder.valor==false){
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor
+                            };
+                        }else{
+                            console.log('solo se puede operar con true=1 y false=0')
+                        }
+                        break;
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor-Number(valorder.valor.charCodeAt(0))
+                        };
+                    case TIPO_DATO.CADENA:
+                        console.log('no se pueden restar los Decimal con '+valorder.tipo);
+                        break;
+                }
+                break;
+            case TIPO_DATO.BANDERA:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        if (valorizq.valor==true) {
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:1-valorder.valor
+                            };
+                        }else if (valorizq.valor==false){
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:0-valorder.valor
+                            };
+                        }else{
+                            console.log('solo se puede operar con true=1 y false=0')
+                        }
+                    break;
+                    case TIPO_DATO.DECIMAL:
+                        if (valorizq.valor==true) {
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:1-valorder.valor
+                            };
+                        }else if (valorizq.valor==false){
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:0-valorder.valor
+                            };
+                        }else{
+                            console.log('solo se puede operar con true=1 y false=0')
+                        }
+                    break;
+                    case TIPO_DATO.BANDERA:
+                        console.log('no se pueden restar los Bandera con '+valorder.tipo);
+                        break;
+                    case TIPO_DATO.CARACTER:
+                        console.log('no se pueden restar los Booleano con '+valorder.tipo);
+                        break;
+                    case TIPO_DATO.CADENA:
+                        console.log('no se pueden restar los cadena con '+valorder.tipo);
+                        break;
+                }
+                break;
+            case TIPO_DATO.CARACTER:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.ENTERO,
+                            valor:valorizq.valor.charCodeAt(0)-valorder.valor
+                        };
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor.charCodeAt(0)-valorder.valor
+                        };
+                    case TIPO_DATO.BANDERA:
+                        console.log('no se puede restar '+valorizq.tipo+' con '+valorder.tipo);
+                        break;
+                    case TIPO_DATO.CARACTER:
+                        console.log('no se pueden restar los Caracter con '+valorder.tipo);
+                        break;
+                    case TIPO_DATO.CADENA:
+                        console.log('no se pueden restar los Caracter con '+valorder.tipo);
+                        break;
+                }
+                break;
+            default:
+                console.log('no se pueden restar los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                break;
         }
         
     }else if (expresion.tipo==TIPO_OPERACION.MULTIPLICACION) { //multiplicacion
@@ -244,16 +547,77 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
         var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
 
         //tipos de resultados y su retorno
-        if (valorizq.tipo==TIPO_DATO.DECIMAL && valorder.tipo==TIPO_DATO.DECIMAL) {
-            return{
-                tipo:TIPO_DATO.DECIMAL,
-                valor:valorizq.valor*valorder.valor
-            };
-
-        }else{
-            //error semantico 
-            console.log('Error Semantico los tipos no se pueden multiplicar');
-            return undefined;
+        switch (valorizq.tipo) {
+            case TIPO_DATO.ENTERO:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.ENTERO,
+                            valor:valorizq.valor*valorder.valor
+                        };
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor*valorder.valor
+                        };
+                    case TIPO_DATO.BANDERA:
+                        console.log('no se pueden multiplicar los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                        break;
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.ENTERO,
+                            valor:valorizq.valor*valorder.valor.charCodeAt(0)
+                        };
+                    case TIPO_DATO.CADENA:
+                        console.log('no se pueden multiplicar los tipos '+valorizq.tipo+' + '+valorder.tipo);
+                        break;
+                }
+                break;
+            case TIPO_DATO.DECIMAL:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor*valorder.valor
+                        };
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor*valorder.valor
+                        };
+                    case TIPO_DATO.BANDERA:
+                        console.log('no se pueden multiplicar los tipos '+valorizq.tipo+' + '+valorder.tipo);
+                        break;
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor*Number(valorder.valor.charCodeAt(0))
+                        };
+                    case TIPO_DATO.CADENA:
+                        console.log('no se pueden multiplicar los tipos '+valorizq.tipo+' + '+valorder.tipo);
+                        break;
+                }
+                break;
+            case TIPO_DATO.CARACTER:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.ENTERO,
+                            valor:valorizq.valor.charCodeAt(0)*valorder.valor
+                        };
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.DECIMAL,
+                            valor:valorizq.valor.charCodeAt(0)*valorder.valor
+                        };
+                    default:
+                        console.log('no se pueden multiplicar los tipos '+valorizq.tipo+' + '+valorder.tipo);
+                        break;
+                }
+                break;
+            default:
+                console.log('no se pueden multiplicar los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                break;
         }
 
     }else if (expresion.tipo==TIPO_OPERACION.DIVISION) {        //division
@@ -261,21 +625,182 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
         var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
 
         //tipos de resultados y su retorno 
-        if(valorizq.tipo==TIPO_DATO.DECIMAL && valorder.valor==0){
-            console.log('imposible dividir entre 0');
-            return undefined;
+        if (valorder.valor!=0) {
+            switch (valorizq.tipo) {
+                case TIPO_DATO.ENTERO:
+                    switch (valorder.tipo) {
+                        case TIPO_DATO.ENTERO:
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:valorizq.valor/valorder.valor
+                            };
+                        case TIPO_DATO.DECIMAL:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor/valorder.valor
+                            };
+                        case TIPO_DATO.BANDERA:
+                            console.log('no se pueden dividir los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                            break;
+                        case TIPO_DATO.CARACTER:
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:valorizq.valor/valorder.valor.charCodeAt(0)
+                            };
+                        case TIPO_DATO.CADENA:
+                            console.log('no se pueden dividir los tipos '+valorizq.tipo+' + '+valorder.tipo);
+                            break;
+                    }
+                    break;
+                case TIPO_DATO.DECIMAL:
+                    switch (valorder.tipo) {
+                        case TIPO_DATO.ENTERO:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor/valorder.valor
+                            };
+                        case TIPO_DATO.DECIMAL:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor/valorder.valor
+                            };
+                        case TIPO_DATO.BANDERA:
+                            console.log('no se pueden dividir los tipos '+valorizq.tipo+' + '+valorder.tipo);
+                            break;
+                        case TIPO_DATO.CARACTER:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor/Number(valorder.valor.charCodeAt(0))
+                            };
+                        case TIPO_DATO.CADENA:
+                            console.log('no se pueden dividir los tipos '+valorizq.tipo+' + '+valorder.tipo);
+                            break;
+                    }
+                    break;
+                case TIPO_DATO.CARACTER:
+                    switch (valorder.tipo) {
+                        case TIPO_DATO.ENTERO:
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:valorizq.valor.charCodeAt(0)/valorder.valor
+                            };
+                        case TIPO_DATO.DECIMAL:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor.charCodeAt(0)/valorder.valor
+                            };
+                        default:
+                            console.log('no se pueden dividir los tipos '+valorizq.tipo+' + '+valorder.tipo);
+                            break;
+                    }
+                    break;
+                default:
+                    console.log('no se pueden dividir los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                    break;
+            } 
+        }else{
+            console.log('no se puede dividir dentro de 0');
         }
         
-        if (valorizq.tipo==TIPO_DATO.DECIMAL && valorder.tipo==TIPO_DATO.DECIMAL) {
-            return{
-                tipo:TIPO_DATO.DECIMAL,
-                valor:valorizq.valor/valorder.valor
-            };
+    //parte para las condicionantes    
+    }else if (expresion.tipo==TIPO_OPERACION.MODULAR) {        //MODULAR
+        var valorizq = procesarExpresion(expresion.operanIzq,tsglobal,tslocal,metodos);
+        var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
 
+        //tipos de resultados y su retorno 
+        if (valorder.valor!=0) {
+            switch (valorizq.tipo) {
+                case TIPO_DATO.ENTERO:
+                    switch (valorder.tipo) {
+                        case TIPO_DATO.ENTERO:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor%valorder.valor
+                            };
+                        case TIPO_DATO.DECIMAL:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor%valorder.valor
+                            };
+                        default:
+                            console.log('no se pueden hacer mod en los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                            break;
+                    }
+                    break;
+                case TIPO_DATO.DECIMAL:
+                    switch (valorder.tipo) {
+                        case TIPO_DATO.ENTERO:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor%valorder.valor
+                            };
+                        case TIPO_DATO.DECIMAL:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:valorizq.valor%valorder.valor
+                            };
+                        default:
+                            console.log('no se pueden hacer mod en los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                            break;
+                    break;
+                        }
+                break;
+                default:
+                    console.log('no se pueden hacer mod en los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                    break;
+            } 
         }else{
-            //error semantico 
-            console.log('Error Semantico los tipos no se pueden dividir');
-            return undefined;
+            console.log('no se puede dividir dentro de 0');
+        }
+    //parte para las condicionantes    
+    }else if (expresion.tipo==TIPO_OPERACION.POTENCIA) {        //POTENCIA
+        var valorizq = procesarExpresion(expresion.operanIzq,tsglobal,tslocal,metodos);
+        var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
+
+        //tipos de resultados y su retorno 
+        if (valorizq.valor==0 && valorder.valor==0) {
+            console.log('no se puede hace pow(0,0)');
+        }else{
+            switch (valorizq.tipo) {
+                case TIPO_DATO.ENTERO:
+                    switch (valorder.tipo) {
+                        case TIPO_DATO.ENTERO:
+                            return{
+                                tipo:TIPO_DATO.ENTERO,
+                                valor:Math.pow(valorizq.valor,valorder.valor)
+                            };
+                        case TIPO_DATO.DECIMAL:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:Math.pow(valorizq.valor,valorder.valor)
+                            };
+                        default:
+                            console.log('no se pueden hacer mod en los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                            break;
+                    }
+                    break;
+                case TIPO_DATO.DECIMAL:
+                    switch (valorder.tipo) {
+                        case TIPO_DATO.ENTERO:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:Math.pow(valorizq.valor,valorder.valor)
+                            };
+                        case TIPO_DATO.DECIMAL:
+                            return{
+                                tipo:TIPO_DATO.DECIMAL,
+                                valor:Math.pow(valorizq.valor,valorder.valor)
+                            };
+                        default:
+                            console.log('no se pueden hacer potencia en los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                            break;
+                    break;
+                        }
+                break;
+                default:
+                    console.log('no se pueden hacer hacer potencia en los tipos '+valorizq.tipo+' + '+valorder.tipo)
+                    break;
+            }
         }
     //parte para las condicionantes    
     }else if (expresion.tipo==TIPO_OPERACION.MAYOR) {        //mayor  OTRA FORMA DE HACER LOS CASTEOS
@@ -283,44 +808,70 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
         var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
         
         switch (valorizq.tipo) {
+            case TIPO_DATO.ENTERO:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor>valorder.valor
+                        }
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor>valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor>Number(valorder.valor.charCodeAt(0))
+                        }
+                
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' > '+valorder.tipo);
+                        return undefined;
+                }
+            break;
             case TIPO_DATO.DECIMAL:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
                         return{
                             tipo:TIPO_DATO.BANDERA,
                             valor: valorizq.valor>valorder.valor
-                        };
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">"');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">"');
+                        }
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor>valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor>Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' > '+valorder.tipo);
                         return undefined;
                 }
                 break;
-            case TIPO_DATO.CADENA:
+            case TIPO_DATO.CARACTER:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
-                        console.log('Error Semantico los tipos no se pueden operar con ">"');
-                        return undefined;
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">"');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">"');
-                        return undefined;;
-                }
-                break;
-            case TIPO_DATO.BANDERA:
-                switch (valorder.tipo) {
-                    case TIPO_DATO.DECIMAL:
-                        console.log('Error Semantico los tipos no se pueden operar con ">"');
-                        return undefined;
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">"');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">"');
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor: Number(valorizq.valor.charCodeAt(0))>valorder.valor
+                        }
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))>valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))>Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' > '+valorder.tipo);
                         return undefined;
                 }
                 break;
@@ -331,44 +882,70 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
         var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
         
         switch (valorizq.tipo) {
+            case TIPO_DATO.ENTERO:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor<valorder.valor
+                        }
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor<valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor<Number(valorder.valor.charCodeAt(0))
+                        }
+                
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' < '+valorder.tipo);
+                        return undefined;
+                }
+            break;
             case TIPO_DATO.DECIMAL:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
                         return{
                             tipo:TIPO_DATO.BANDERA,
                             valor: valorizq.valor<valorder.valor
-                        };
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<"');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<"');
+                        }
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor<valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor<Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' < '+valorder.tipo);
                         return undefined;
                 }
                 break;
-            case TIPO_DATO.CADENA:
+            case TIPO_DATO.CARACTER:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
-                        console.log('Error Semantico los tipos no se pueden operar con "<"');
-                        return undefined;
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<"');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<"');
-                        return undefined;;
-                }
-                break;
-            case TIPO_DATO.BANDERA:
-                switch (valorder.tipo) {
-                    case TIPO_DATO.DECIMAL:
-                        console.log('Error Semantico los tipos no se pueden operar con "<"');
-                        return undefined;
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<"');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<"');
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor: Number(valorizq.valor.charCodeAt(0))<valorder.valor
+                        }
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))<valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))<Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' < '+valorder.tipo);
                         return undefined;
                 }
                 break;
@@ -379,44 +956,70 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
         var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
         
         switch (valorizq.tipo) {
+            case TIPO_DATO.ENTERO:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor<=valorder.valor
+                        }
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor<=valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor<=Number(valorder.valor.charCodeAt(0))
+                        }
+                
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' <= '+valorder.tipo);
+                        return undefined;
+                }
+            break;
             case TIPO_DATO.DECIMAL:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
                         return{
                             tipo:TIPO_DATO.BANDERA,
                             valor: valorizq.valor<=valorder.valor
-                        };
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<="');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<="');
+                        }
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor<=valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor<=Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' <= '+valorder.tipo);
                         return undefined;
                 }
                 break;
-            case TIPO_DATO.CADENA:
+            case TIPO_DATO.CARACTER:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
-                        console.log('Error Semantico los tipos no se pueden operar con "<="');
-                        return undefined;
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<="');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<="');
-                        return undefined;;
-                }
-                break;
-            case TIPO_DATO.BANDERA:
-                switch (valorder.tipo) {
-                    case TIPO_DATO.DECIMAL:
-                        console.log('Error Semantico los tipos no se pueden operar con "<="');
-                        return undefined;
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<="');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con "<="');
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor: Number(valorizq.valor.charCodeAt(0))<=valorder.valor
+                        }
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))<=valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))<=Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' <= '+valorder.tipo);
                         return undefined;
                 }
                 break;
@@ -427,44 +1030,70 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
         var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
         
         switch (valorizq.tipo) {
+            case TIPO_DATO.ENTERO:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor>=valorder.valor
+                        }
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor>=valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor>=Number(valorder.valor.charCodeAt(0))
+                        }
+                
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' >= '+valorder.tipo);
+                        return undefined;
+                }
+            break;
             case TIPO_DATO.DECIMAL:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
                         return{
                             tipo:TIPO_DATO.BANDERA,
                             valor: valorizq.valor>=valorder.valor
-                        };
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">="');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">="');
+                        }
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor>=valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor>=Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' >='+valorder.tipo);
                         return undefined;
                 }
                 break;
-            case TIPO_DATO.CADENA:
+            case TIPO_DATO.CARACTER:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
-                        console.log('Error Semantico los tipos no se pueden operar con ">="');
-                        return undefined;
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">="');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">="');
-                        return undefined;;
-                }
-                break;
-            case TIPO_DATO.BANDERA:
-                switch (valorder.tipo) {
-                    case TIPO_DATO.DECIMAL:
-                        console.log('Error Semantico los tipos no se pueden operar con ">="');
-                        return undefined;
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">="');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con ">="');
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor: Number(valorizq.valor.charCodeAt(0))>=valorder.valor
+                        }
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))>=valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))>=Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' >= '+valorder.tipo);
                         return undefined;
                 }
                 break;
@@ -475,68 +1104,71 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
         var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
         
         switch (valorizq.tipo) {
+            case TIPO_DATO.ENTERO:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor==valorder.valor
+                        }
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor==valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor==Number(valorder.valor.charCodeAt(0))
+                        }
+                
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' == '+valorder.tipo);
+                        return undefined;
+                }
+            break;
             case TIPO_DATO.DECIMAL:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
                         return{
                             tipo:TIPO_DATO.BANDERA,
                             valor: valorizq.valor==valorder.valor
-                        };
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con "=="');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        var valor2;                                 //*
-                        if (valorder.valor==true) {
-                            valor2=1;                               //casteo implicito
-                        }else if (valorder.valor==false){
-                            valor2=0;
-                        }                                           //*
-
+                        }
+                    case TIPO_DATO.ENTERO:
                         return{
                             tipo:TIPO_DATO.BANDERA,
-                            valor: valorizq.valor==valor2
-                        };
-                }
-                break;
-            case TIPO_DATO.CADENA:
-                switch (valorder.tipo) {
-                    case TIPO_DATO.DECIMAL:
-                        console.log('Error Semantico los tipos no se pueden operar con "=="');
-                        return undefined;
-                    case TIPO_DATO.CADENA:
-                        console.log("entro");
+                            valor:valorizq.valor==valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
                         return{
                             tipo:TIPO_DATO.BANDERA,
-                            valor: valorizq.valor==valorder.valor
-                        };
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con "=="');
+                            valor:valorizq.valor==Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' =='+valorder.tipo);
                         return undefined;
                 }
                 break;
-            case TIPO_DATO.BANDERA:
+            case TIPO_DATO.CARACTER:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
-                        var valor1;                                 //*
-                        if (valorizq.valor==true) {
-                            valor1=1;                               //casteo implicito
-                        }else if (valorizq.valor==false){
-                            valor1=0;
-                        }                                           //*
-
                         return{
                             tipo:TIPO_DATO.BANDERA,
-                            valor: valor1==valorder.valor
-                        };
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con "=="');
+                            valor: Number(valorizq.valor.charCodeAt(0))==valorder.valor
+                        }
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))==valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))==Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' == '+valorder.tipo);
                         return undefined;
-                    case TIPO_DATO.BANDERA:
-                        return{
-                            tipo:TIPO_DATO.BANDERA,
-                            valor: valorizq.valor==valorder.valor
-                        };
                 }
                 break;
         }
@@ -546,69 +1178,132 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
         var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
         
         switch (valorizq.tipo) {
+            case TIPO_DATO.ENTERO:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor!=valorder.valor
+                        }
+                    case TIPO_DATO.DECIMAL:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor!=valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor!=Number(valorder.valor.charCodeAt(0))
+                        }
+                
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' != '+valorder.tipo);
+                        return undefined;
+                }
+            break;
             case TIPO_DATO.DECIMAL:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
                         return{
                             tipo:TIPO_DATO.BANDERA,
                             valor: valorizq.valor!=valorder.valor
-                        };
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con "!="');
-                        return undefined;
-                    case TIPO_DATO.BANDERA:
-                        var valor2;                                 //*
-                        if (valorder.valor==true) {
-                            valor2=1;                               //casteo implicito
-                        }else if (valorder.valor==false){
-                            valor2=0;
-                        }                                           //*
-
+                        }
+                    case TIPO_DATO.ENTERO:
                         return{
                             tipo:TIPO_DATO.BANDERA,
-                            valor: valorizq.valor!=valor2
-                        };
+                            valor:valorizq.valor!=valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor!=Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' !='+valorder.tipo);
+                        return undefined;
                 }
                 break;
-            case TIPO_DATO.CADENA:
+            case TIPO_DATO.CARACTER:
                 switch (valorder.tipo) {
                     case TIPO_DATO.DECIMAL:
-                        console.log('Error Semantico los tipos no se pueden operar con "!="');
-                        return undefined;
-                    case TIPO_DATO.CADENA:
                         return{
                             tipo:TIPO_DATO.BANDERA,
-                            valor: valorizq.valor!=valorder.valor
-                        };
-                    case TIPO_DATO.BANDERA:
-                        console.log('Error Semantico los tipos no se pueden operar con "!="');
+                            valor: Number(valorizq.valor.charCodeAt(0))!=valorder.valor
+                        }
+                    case TIPO_DATO.ENTERO:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))!=valorder.valor
+                        }
+                    case TIPO_DATO.CARACTER:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:Number(valorizq.valor.charCodeAt(0))!=Number(valorder.valor.charCodeAt(0))
+                        }
+                    default:
+                        console.log('Error Semantico: Imposible realizar '+valorizq.tipo+' != '+valorder.tipo);
                         return undefined;
                 }
                 break;
+        }
+
+    }else if (expresion.tipo==TIPO_OPERACION.ORR) {        //noigual  OTRA FORMA DE HACER LOS CASTEOS
+        var valorizq = procesarExpresion(expresion.operanIzq,tsglobal,tslocal,metodos);
+        var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
+        
+        switch (valorizq.tipo) {
             case TIPO_DATO.BANDERA:
                 switch (valorder.tipo) {
-                    case TIPO_DATO.DECIMAL:
-                        var valor1;                                 //*
-                        if (valorizq.valor==true) {
-                            valor1=1;                               //casteo implicito
-                        }else if (valorizq.valor==false){
-                            valor1=0;
-                        }                                           //*
-
-                        return{
-                            tipo:TIPO_DATO.BANDERA,
-                            valor: valor1!=valorder.valor
-                        };
-                    case TIPO_DATO.CADENA:
-                        console.log('Error Semantico los tipos no se pueden operar con "!="');
-                        return undefined;
                     case TIPO_DATO.BANDERA:
                         return{
                             tipo:TIPO_DATO.BANDERA,
-                            valor: valorizq.valor!=valorder.valor
-                        };
+                            valor:valorizq.valor||valorder.valor
+                        }
+                    default:
+                        console.log('imposible operar '+valorizq.tipo+' || '+valorder.tipo);
+                        return undefined;
                 }
-                break;
+            break;
+            default:
+                console.log('imposible operar '+valorizq.tipo+' || '+valorder.tipo);
+                return undefined;
+        }
+
+    }else if (expresion.tipo==TIPO_OPERACION.ANDD) {        //noigual  OTRA FORMA DE HACER LOS CASTEOS
+        var valorizq = procesarExpresion(expresion.operanIzq,tsglobal,tslocal,metodos);
+        var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
+        
+        switch (valorizq.tipo) {
+            case TIPO_DATO.BANDERA:
+                switch (valorder.tipo) {
+                    case TIPO_DATO.BANDERA:
+                        return{
+                            tipo:TIPO_DATO.BANDERA,
+                            valor:valorizq.valor&&valorder.valor
+                        }
+                    default:
+                        console.log('imposible operar '+valorizq.tipo+' && '+valorder.tipo);
+                        return undefined;
+                }
+            break;
+            default:
+                console.log('imposible operar '+valorizq.tipo+' && '+valorder.tipo);
+                return undefined;
+        }
+
+    }else if (expresion.tipo==TIPO_OPERACION.NOTT) {        //noigual  OTRA FORMA DE HACER LOS CASTEOS
+        var valorizq = procesarExpresion(expresion.operanIzq,tsglobal,tslocal,metodos);
+        //var valorder = procesarExpresion(expresion.operanDer,tsglobal,tslocal,metodos);
+        
+        switch (valorizq.tipo) {
+            case TIPO_DATO.BANDERA:
+                return{
+                    tipo:TIPO_DATO.BANDERA,
+                    valor:!valorizq.valor
+                }
+            default:
+                console.log('imposible operar '+valorizq.tipo+' !');
+                return undefined;
         }
 
     }else if (expresion.tipo==TIPO_OPERACION.NEGATIVO) {    //negativo
@@ -619,6 +1314,12 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
         if (valorizq.tipo==TIPO_DATO.DECIMAL) {
             return{
                 tipo:TIPO_DATO.DECIMAL,
+                valor:valorizq.valor*-1
+            };
+
+        }else if (valorizq.tipo==TIPO_DATO.ENTERO) {
+            return{
+                tipo:TIPO_DATO.ENTERO,
                 valor:valorizq.valor*-1
             };
 
@@ -676,7 +1377,18 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
                 return undefined;
             }
         }
+    }else if (expresion.tipo==TIPO_VALOR.ENTERO) {
+        return{
+            tipo:TIPO_DATO.ENTERO,
+            valor:expresion.valor
+        };
+    }else if (expresion.tipo==TIPO_VALOR.CARACTER) {
+        return{
+            tipo:TIPO_DATO.CARACTER,
+            valor:expresion.valor
+        };
     }
 }
 
 module.exports.ejecutar= ejecutar;
+module.exports.listaerrores=listaerrores;
