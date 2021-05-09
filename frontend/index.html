@@ -6,6 +6,9 @@
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="css/index.css">
         <script src="js/index.js"></script>
+        <script src="https://d3js.org/d3.v6.min.js"></script>
+        <script src="https://unpkg.com/@hpcc-js/wasm@0.3.11/dist/index.min.js"></script>
+        <script src="https://unpkg.com/d3-graphviz@3.0.5/build/d3-graphviz.js"></script>
         <script src="codemirror/lib/codemirror.js"></script>
         <link rel="stylesheet" href="codemirror/lib/codemirror.css">
         <link rel="stylesheet" href="codemirror/theme/material.css">
@@ -72,18 +75,16 @@
                                 <th scope="col">#</th>
                                 <th scope="col">Identificador</td>
                                 <th scope="col">Tipo</th>
-                                <th scope="col">Entorno</th>
+                                <th scope="col">Tipo_Dato</th>
+                                <th scope="col">Linea</th>
+                                <th scope="col">Col</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            <tr>
-                                <th scope="row">1</th>
-                                <td>blabla</td>
-                                <td>blabla</td>
-                                <td>blabla</td>
-                            </tr>
+                        <tbody id="TablaSimbolos">
                         </tbody>
                     </table>
+                    <div id="Graph">
+                    </div>
                 </div>
             </div>
             <footer class="Piedepagina">

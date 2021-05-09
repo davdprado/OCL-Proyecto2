@@ -39,14 +39,25 @@ window.addEventListener('load', openArchivo, false);
         .then(response=>response.json())
         .then(data=>{
             document.getElementById('consolita').value=data.respuesta;
+            console.log(data.grafica);
             const tablaE =document.querySelector("#TablaErrores");
+            const tablaS =document.querySelector("#TablaSimbolos");
             tablas(data.error,tablaE);
+            tablasimb(data.simbolos,tablaS);
+            graficar(data.grafico);
         })
         .catch(err=>console.log(err)); 
     }
+
+    function graficar(dot) {
+        d3.select("#Graph")
+            .graphviz()
+            .dot(dot)
+            .render();
+    }
+
     function tablas(datos,tabla) {
         tabla.innerHTML="";
-        console.log(datos);
         var contador=0;
         for(let valor of datos){
             contador++;
@@ -57,6 +68,22 @@ window.addEventListener('load', openArchivo, false);
                 <td>${valor.descripcion}</td>
                 <td>${valor.linea}</td>
                 <td>${valor.col}</td>
+            </tr>`;
+        }
+    }
+    function tablasimb(datos,tabla) {
+        tabla.innerHTML="";
+        var contador=0;
+        for(let valor of datos){
+            contador++;
+            tabla.innerHTML+=`
+            <tr>
+                <th scope="row">${contador}</th>
+                <td>${valor.id}</td>
+                <td>${valor.tipo}</td>
+                <td>${valor.tipoValor}</td>
+                <td>${valor.fila}</td>
+                <td>${valor.columna}</td>
             </tr>`;
         }
     }

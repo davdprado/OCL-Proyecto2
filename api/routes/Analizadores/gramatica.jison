@@ -21,6 +21,10 @@
 "/"						return 'dividido';
 "^"						return 'elevado';
 "%"						return 'modular';
+"=="					return 'igualIgual';
+"!="					return 'diferente';
+"<="					return 'menorIgual';
+">="					return 'mayorIgual';
 "="						return 'igual';
 "!"						return 'nott';
 ":"						return 'dosPuntos';
@@ -29,10 +33,6 @@
 "<"						return 'menorQue';
 "?"						return 'pregunta';
 "."						return 'punto';
-"=="					return 'igualIgual';
-"!="					return 'diferente';
-"<="					return 'menorIgual';
-">="					return 'mayorIgual';
 "||"					return 'orr';
 "&&"					return 'andd';
 "("						return 'pIzq';
@@ -43,7 +43,6 @@
 "]"						return 'corDer';
 "new"					return 'nuevo';
 "list"					return 'listaa';
-"."						return 'punto';
 ","						return 'comaa';
 "add"					return 'agregar';
 "if"					return 'sentenciaIf';
@@ -76,10 +75,10 @@
 
 //pueden faltar los -- o ++
 
-\"[^\"]*\"				{yytext=yytext.substr(1,yyleng-2); return 'cadenaaa';}
-\'[^\']?\'				return 'caracter';
-[0-9]+("."[  |0-9]+)?	return 'decimall';
-[0-9]+					return 'entero'; 
+([\"]("\\\""|[^"])*[^\\][\"])|[\"][\"]				{yytext=yytext.substr(1,yyleng-2); return 'cadenaaa';}
+\'([^\']|"\\n"|"\\r"|"\\t")\'				{yytext=yytext.substr(1,yyleng-2); return 'caracter'};
+[0-9]+"."[0-9]+\b	return 'decimall';
+[0-9]+\b						return 'entero';
 ([a-zA-Z])[a-zA-Z0-9_]*	return 'identificador';
 					
 
@@ -91,17 +90,18 @@
 
 //parser-code
 %{
-	
+
 %}
 
 // Precedencia de operadores
 %left 'orr'
 %left 'andd'
-%right 'nott'
+%left 'nott'
 %left 'igualIgual' 'mayorQue' 'menorQue' 'mayorIgual' 'menorIgual' 'diferente'
 %left 'mas' 'menos'
-%left 'por' 'dividido'  //falta el de potencia
-%left 'potencia'
+%left 'por' 'dividido' 'modular' //falta el de potencia
+%nonassoc 'elevado'
+%right UCASTEO
 %left UMENOS
 
 %start INICIO 
@@ -110,77 +110,134 @@
 %%
 
 INICIO
-	: CUERPO EOF { console.log('Funciono');};
+	: CUERPO EOF { return $1; console.log('Funciono');};
+
 
 CUERPO
-	: CUERPO DECLARACION
-	| CUERPO IMPRIMIR
-	| CUERPO ASIGNACION
-	| CUERPO CASTEO
-	| CASTEO
-	| DECLARACION
-	| ASIGNACION
-	| IMPRIMIR
-	| error { console.error('Este es un error sintáctico: ' + yytext + ', en la linea: ' + this._$.first_line + ', en la columna: ' + this._$.first_column); };
+	: CUERPO DECLARACION                    
+	| CUERPO ASIGNACION						
+	| CUERPO METODO							
+	| CUERPO MAIN							
+	| METODO								
+	| ASIGNACION							
+	| DECLARACION                           
+	| MAIN									
+	| error									;
+
+CUERPO2
+	: CUERPO2 DECLARACION                   
+	| CUERPO2 IMPRIMIR                      
+	| CUERPO2 FUNCWHILE                     
+	| CUERPO2 FUNCIF                       	
+	| CUERPO2 LLAMADA 						
+	| CUERPO2 ASIGNACION					
+	| CUERPO2 BREAKK						
+	| CUERPO2 FUNCDOWHILE					
+	| FUNCDOWHILE							
+	| ASIGNACION							
+	| DECLARACION                           //sin tener que retornar arraylist solo un arreglo
+	| IMPRIMIR                              
+	| FUNCWHILE								
+	| LLAMADA								
+	| FUNCIF								
+	| BREAKK								
+	| error									;	
+
+	
+//aqui iran como el while, if, etc
+MAIN
+	: ejecutar identificador pIzq VALORESLLAMADA pDer pyc 
+    | ejecutar identificador pIzq pDer pyc ;
+
+VALORESLLAMADA
+    : VALORESLLAMADA comaa EXP 
+    | EXP {$$=[$1];};
+
+LLAMADA
+    : identificador pIzq VALORESLLAMADA pDer pyc
+    | identificador pIzq pDer pyc ;
+
+METODO
+	: tipoVoid identificador pIzq PARAMETROS pDer llaveIzq CUERPO2 llaveDer 
+	| tipoVoid identificador pIzq pDer llaveIzq CUERPO2 llaveDer ;
+
+PARAMETROS
+	: PARAMETROS comaa TIPO identificador		
+	| TIPO identificador						;		
+
+CICLOFOR
+	:sentenciaFor pIzq IFOR  pyc EXP  pyc ASIG pDer llaveIzq CUERPO2 llaveDer;	
+
+IFOR
+	: DECLA
+	| ASIG;	
 
 DECLARACION
-	: TIPO identificador igual EXP pyc
-	| TIPO identificador pyc;
+	: DECLA  pyc    {$$=$1};
+
+DECLA
+	:TIPO identificador igual EXP			
+	|TIPO identificador                 ;
 
 ASIGNACION
-	:identificador igual EXP pyc;
+	:ASIG pyc 			{$$=$1};
+
+ASIG
+	:identificador igual EXP  			;
+
+//si lo manejo asi tengo que validar que el valor que retorne EXP sea tipo bandera
+FUNCWHILE
+	: sentenciaWhile pIzq EXP pDer llaveIzq CUERPO2 llaveDer ;
+
+FUNCDOWHILE
+	: sentenciaDo llaveIzq CUERPO2 llaveDer sentenciaWhile pIzq EXP pDer pyc ;
+
+FUNCIF
+	:sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer sentenciaElse llaveIzq CUERPO2 llaveDer 
+	|sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer 
+	|sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer sentenciaElse FUNCIF ;
 
 IMPRIMIR 
-	: imprimir pIzq EXP pDer pyc;
+	: imprimir pIzq EXP pDer pyc    ;
 
 CASTEO
-	: pIzq TIPO pDer EXP pyc;
+	: pIzq TIPO pDer EXP %prec UCASTEO;
 
-VECTOR
-	: TIPO corIzq corDer identificador igual nuevo TIPO corIzq EXP corDer pyc
-	| TIPO corIzq corDer identificador igual llaveIzq LISTAVALORES llaveDer pyc;
+BREAKK
+	: romper pyc ;
 
-LISTAVALORES
-	: LISTAVALORES comaa VALOR
-	| VALOR;
 
-INST_LISTA
-	: listaa menorQue TIPO mayorQue identificador igual nuevo listaa menorQue TIPO mayorQue pyc;
-
-AGREGAR_LISTA
-	: identificador punto agregar pIzq EXP pDer pyc;
-
-MODIFICAR_LISTA
-	: identificador corIzq corIzq EXP corDer corDer igual EXP pyc;
-
-ACCESO_LISTA
-	: identificador corIzq corIzq EXP corDer corDer;
 
 TIPO
-	: tipoDouble
-	| tipoChar
-	| tipoBooleano
-	| tipoInt
+	: tipoDouble                   
+	| tipoChar						
+	| tipoBooleano                  
+	| tipoInt						
 	| tipoString;
 
 EXP
-	: EXP mas EXP
-	| EXP menos EXP
-	| EXP por EXP
-	| EXP dividido EXP
-	| menos EXP
-	| pIzq EXP pDer
-    | VALOR;
-
-VALOR
-	: entero
-	| decimall
-	| cadenaaa
-    | caracter
-	| truee
-	| falsee
-	| identificador;
-
-
-
+	: EXP mas EXP                   
+	| EXP menos EXP                                              
+	| EXP por EXP                   
+	| EXP dividido EXP              
+	| EXP modular EXP 				
+	| EXP elevado EXP				
+	| EXP igualIgual EXP                 
+	| EXP mayorQue EXP                 
+	| EXP menorQue EXP                
+	| EXP mayorIgual EXP                 
+	| EXP menorIgual EXP                 
+	| EXP diferente EXP                 
+	| EXP orr EXP 					
+	| EXP andd EXP                  
+	| nott EXP						
+	| menos EXP %prec UMENOS        
+	| pIzq EXP pDer                 
+    | entero                        
+	| decimall                      
+	| cadenaaa                     
+    | caracter  					
+	| truee                         
+	| falsee                        
+	| identificador                 ;
 

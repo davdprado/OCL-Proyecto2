@@ -48,7 +48,9 @@ const TIPO_INSTRUCCIONES={
     METODO:                 'INST_METODO',
     MAIN:                   'INST_MAIN',
     LLAMADA:                'INST_LLAMADA',
-    BREAKK:                 'INST_BREAK'
+    BREAKK:                 'INST_BREAK',
+    DOWHILE:                'INST_DOWHILE',
+    FOR:                    'INST_FOR'
 }
 
 const INSTRUCCIONES={
@@ -151,6 +153,13 @@ const INSTRUCCIONES={
             instrucciones:instrucciones
         }
     },
+    nuevoDoWhile: function(instrucciones, condicion) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.DOWHILE,
+            condicion:condicion,
+            instrucciones:instrucciones
+        }
+    },
     nuevaIf: function(condicion, cuerpoTrue,cuerpoFalse) {
         return{
             tipo:TIPO_INSTRUCCIONES.FIF,
@@ -197,6 +206,15 @@ const INSTRUCCIONES={
     nuevoBreak: function() {
         return{
             tipo:TIPO_INSTRUCCIONES.BREAKK
+        }
+    },
+    nuevoFor:function(declaracion,condicion,asignacion,instrucciones) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.FOR,
+            declaracion: declaracion,
+            condicion:condicion,
+            asignacion:asignacion,
+            instrucciones:instrucciones
         }
     }
 

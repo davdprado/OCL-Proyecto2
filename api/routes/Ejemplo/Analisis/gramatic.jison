@@ -3,6 +3,19 @@
  */
 
 /* Definición Léxica */
+
+%{
+    function addSimbolo(tipoValor,tipo,id,fila,columna){
+        return {
+			id:id,
+			tipo:tipo,
+			tipoValor:tipoValor,
+			fila:fila,
+			columna:columna
+		}
+    }
+%}
+
 %lex
 
 %options case-insensitive
@@ -43,7 +56,6 @@
 "]"						return 'corDer';
 "new"					return 'nuevo';
 "list"					return 'listaa';
-"."						return 'punto';
 ","						return 'comaa';
 "add"					return 'agregar';
 "if"					return 'sentenciaIf';
@@ -78,8 +90,8 @@
 
 ([\"]("\\\""|[^"])*[^\\][\"])|[\"][\"]				{yytext=yytext.substr(1,yyleng-2); return 'cadenaaa';}
 \'([^\']|"\\n"|"\\r"|"\\t")\'				{yytext=yytext.substr(1,yyleng-2); return 'caracter'};
-[0-9]+					return 'entero';
-[0-9]+("."[  |0-9]+)?	return 'decimall';
+[0-9]+"."[0-9]+\b	return 'decimall';
+[0-9]+\b						return 'entero';
 ([a-zA-Z])[a-zA-Z0-9_]*	return 'identificador';
 					
 
@@ -97,7 +109,8 @@
     const INSTRUCCIONES = require('../Arbol/instrucciones').INSTRUCCIONES;
     const TIPO_DATO = require('../Arbol/tablaSimbolos').TIPO_DATO;
 	const TIPO_ERROR = require('../Arbol/instrucciones').TIPO_ERROR;
-	const listaerrores=require('../interprete/interprete').listaerrores; 
+	const listaerrores=require('../interprete/interprete').listaerrores;
+	const listasimbolos=require('../interprete/interprete').listasimbolos; 
 %}
 
 // Precedencia de operadores
@@ -148,7 +161,13 @@ CUERPO2
 	| CUERPO2 FUNCIF                       	{ $1.push($2);$$=$1;}
 	| CUERPO2 LLAMADA 						{ $1.push($2); $$=$1; }
 	| CUERPO2 ASIGNACION					{ $1.push($2);$$=$1;}
-	| CUERPO2 BREAKK						{ $1.push($2);$$=$1;}	
+	| CUERPO2 BREAKK						{ $1.push($2);$$=$1;}
+	| CUERPO2 FUNCDOWHILE					{ $1.push($2);$$=$1;}
+	| CUERPO2 CICLOFOR						{ $1.push($2);$$=$1;}
+	| CUERPO2 FUNCSWITCH					{ $1.push($2);$$=$1;}
+	| FUNCSWITCH							{ $$=[$1];}
+	| CICLOFOR								{ $$=[$1];}
+	| FUNCDOWHILE							{ $$=[$1];}
 	| ASIGNACION							{ $$=[$1];}
 	| DECLARACION                           { $$=[$1];}//sin tener que retornar arraylist solo un arreglo
 	| IMPRIMIR                              { $$=[$1];}
@@ -183,29 +202,54 @@ LLAMADA
     | identificador pIzq pDer pyc {$$=INSTRUCCIONES.nuevaLlamada($1, []);};
 
 METODO
-	: tipoVoid identificador pIzq PARAMETROS pDer llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevoMetodo($2,$4,$7);}
-	| tipoVoid identificador pIzq pDer llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevoMetodo($2,[],$6);};
+	: tipoVoid identificador pIzq PARAMETROS pDer llaveIzq CUERPO2 llaveDer {listasimbolos.push(addSimbolo($1,TIPO_INSTRUCCIONES.METODO,$2,this._$.first_line,this._$.first_column));$$=INSTRUCCIONES.nuevoMetodo($2,$4,$7);}
+	| tipoVoid identificador pIzq pDer llaveIzq CUERPO2 llaveDer {listasimbolos.push(addSimbolo($1,TIPO_INSTRUCCIONES.METODO,$2,this._$.first_line,this._$.first_column));$$=INSTRUCCIONES.nuevoMetodo($2,[],$6);};
 
 PARAMETROS
-	: PARAMETROS comaa TIPO identificador		{$1.push(INSTRUCCIONES.nuevoParametro($3,$4));$$=$1;}
-	| TIPO identificador						{$$=[INSTRUCCIONES.nuevoParametro($1,$2)];};				
+	: PARAMETROS comaa TIPO identificador		{$1.push(INSTRUCCIONES.nuevoParametro($3,$4));listasimbolos.push(addSimbolo($3,'INST_PARAMETRO',$4,this._$.first_line,this._$.first_column));$$=$1;}
+	| TIPO identificador						{listasimbolos.push(addSimbolo($1,'INST_PARAMETRO',$2,this._$.first_line,this._$.first_column));$$=[INSTRUCCIONES.nuevoParametro($1,$2)];};		
 
+CICLOFOR
+	:sentenciaFor pIzq IFOR  pyc EXP  pyc ASIG pDer llaveIzq CUERPO2 llaveDer;	
+
+IFOR
+	: DECLA
+	| ASIG;	
 
 DECLARACION
-	: TIPO identificador igual EXP pyc      { $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,$4); }
-	| TIPO identificador pyc                { $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,undefined); };
+	: DECLA  pyc    {$$=$1};
+
+DECLA
+	:TIPO identificador igual EXP			{listasimbolos.push(addSimbolo($1,'VARIABLE',$2,this._$.first_line,this._$.first_column)); $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,$4); }
+	|TIPO identificador                 {listasimbolos.push(addSimbolo($1,'VARIABLE',$2,this._$.first_line,this._$.first_column)); $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,undefined); };
 
 ASIGNACION
-	:identificador igual EXP pyc 			{$$=INSTRUCCIONES.nuevaAsignacion($1,$3);};
+	:ASIG pyc 			{$$=$1};
+
+ASIG
+	:identificador igual EXP  			{$$=INSTRUCCIONES.nuevaAsignacion($1,$3);};
 
 //si lo manejo asi tengo que validar que el valor que retorne EXP sea tipo bandera
 FUNCWHILE
 	: sentenciaWhile pIzq EXP pDer llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevaWhile($3,$6);};
 
+FUNCDOWHILE
+	: sentenciaDo llaveIzq CUERPO2 llaveDer sentenciaWhile pIzq EXP pDer pyc {$$=INSTRUCCIONES.nuevoDoWhile($3,$7);};
+
 FUNCIF
 	:sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer sentenciaElse llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevaIf($3,$6,$10);}
 	|sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevaIf($3,$6,undefined);}
 	|sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer sentenciaElse FUNCIF {$$=INSTRUCCIONES.nuevaIf($3,$6,[$9]);};
+
+FUNCSWITCH
+	:sentenciaSwitch pIzq EXP pDer llaveIzq CASOS llaveDer
+	|sentenciaSwitch pIzq EXP pDer llaveIzq CASOS defectoo dosPuntos CUERPO2 llaveDer
+	|sentenciaSwitch pIzq EXP pDer llaveIzq defectoo dosPuntos CUERPO2 llaveDer;
+
+CASOS
+	: CASOS casoo EXP dosPuntos CUERPO2
+	| casoo EXP dosPuntos CUERPO2;
+
 
 IMPRIMIR 
 	: imprimir pIzq EXP pDer pyc    { $$=INSTRUCCIONES.nuevaImprimir($3);};
@@ -215,6 +259,7 @@ CASTEO
 
 BREAKK
 	: romper pyc {$$=INSTRUCCIONES.nuevoBreak();};
+
 
 
 TIPO

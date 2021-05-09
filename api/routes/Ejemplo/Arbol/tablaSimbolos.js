@@ -92,13 +92,10 @@ class TS{
         }
     }
     actualizar(id,valor){
-        console.log(id);
-        console.log(valor);
+
         var simbolo=this._simbolos.filter((simbolo)=>simbolo.id==id)[0];
-        console.log(simbolo);
         if (simbolo) {
             if (simbolo.tipo==valor.tipo) {
-                console.log('entra con '+id+' y valor '+valor.valor);
                 simbolo.valor=valor.valor;
             }else{
                 //ver si hay casteos implisitos 6=3.7

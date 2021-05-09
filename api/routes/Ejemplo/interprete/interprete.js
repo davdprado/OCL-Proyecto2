@@ -7,6 +7,7 @@ const TS = require('../Arbol/tablaSimbolos').TS;
 
 let salida='';
 let listaerrores=[];
+let listasimbolos=[];
 
 function ejecutar(arbol) {
     salida='';
@@ -48,7 +49,8 @@ function ejecutar(arbol) {
     }
     return{
         salida:salida,
-        errores:listaerrores
+        errores:listaerrores,
+        simbolos:listasimbolos
     }
 }
 //DA UNA PASADA A TODO EL CODIGO PARA GUARADAR LOS METODOS Y FUNCIONES
@@ -81,6 +83,10 @@ function ejecutarBloqueLocal(instrucciones,tsglobal,tslocal,metodos) {
             //codigo para while
             var tslocal2=new TS(tslocal._simbolos);
             ejecutarWhile(instruccion,tsglobal,tslocal2,metodos);
+        }else if (instruccion.tipo==TIPO_INSTRUCCIONES.DOWHILE) {
+            //codigo para DOwhile
+            var tslocal2=new TS(tslocal._simbolos);
+            ejecutarDoWhile(instruccion,tsglobal,tslocal2,metodos);
         }else if (instruccion.tipo==TIPO_INSTRUCCIONES.FIF) {
             //codigo para if
             var tslocal2=new TS(tslocal._simbolos);
@@ -184,6 +190,25 @@ function ejecutarWhile(instruccion,tsglobal,tslocal,metodos) {
         }
         valor= procesarExpresion(instruccion.condicion,tsglobal,tslocal,metodos);
     }
+}
+
+
+function ejecutarDoWhile(instruccion,tsglobal,tslocal,metodos) {
+    var valor = procesarExpresion(instruccion.condicion,tsglobal,tslocal,metodos);
+    do {
+        var posiblevalor = ejecutarBloqueLocal(instruccion.instrucciones,tsglobal,tslocal,metodos);
+        if (posiblevalor) {
+            if (posiblevalor.tipo_resultado==TIPO_INSTRUCCIONES.BREAKK) {
+                break;
+                /**
+                 * si es un return{
+                 * devolver el resultado 
+                 * }
+                 */
+            }
+        }
+        valor= procesarExpresion(instruccion.condicion,tsglobal,tslocal,metodos);
+    } while (valor.valor);
 }
 
 function ejecutarDeclaracionGlobal(instruccion,tsglobal,tslocal,metodos) {
@@ -1392,3 +1417,4 @@ function procesarExpresion(expresion,tsglobal,tslocal,metodos) {
 
 module.exports.ejecutar= ejecutar;
 module.exports.listaerrores=listaerrores;
+module.exports.listasimbolos=listasimbolos;
