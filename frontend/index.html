@@ -5,19 +5,19 @@
         <meta charset="UTF-8">
         <meta name="viewport" content="width=device-width, initial-scale=1.0">
         <link rel="stylesheet" href="css/index.css">
-        <script src="js/index.js"></script>
         <script src="https://d3js.org/d3.v6.min.js"></script>
         <script src="https://unpkg.com/@hpcc-js/wasm@0.3.11/dist/index.min.js"></script>
         <script src="https://unpkg.com/d3-graphviz@3.0.5/build/d3-graphviz.js"></script>
         <script src="codemirror/lib/codemirror.js"></script>
+        <script src="codemirror/addon/edit/closebrackets.js"></script>
         <link rel="stylesheet" href="codemirror/lib/codemirror.css">
         <link rel="stylesheet" href="codemirror/theme/material.css">
-        <script src="codemirror/mode/clike/clike.js"></script>
+        <script src="codemirror/mode/javascript/javascript.js"></script>
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
         <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
         <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
-    
+        <script src="js/index.js"></script>
     </head>
     <body>
         <div class="containerPrincipal">
@@ -37,20 +37,14 @@
                 <div class="containerText">
                     <br></br>
                     <div class="Editor">
-                        <label>Editor:</label>
+                        <label >Editor:</label>
                         <br></br>
                         <textarea id="contenido" rows="10" cols="80"></textarea>
-                        <!-- <script>
-                            var editor = CodeMirror.fromTextArea(document.getElementById('contenido'),{
-                                mode: "clike",
-                                theme:"material"
-                            });
-                        </script> -->
                     </div>
                     <div class="Consola">
-                        <label>Consola:</label>
+                        <label >Consola:</label>
                         <br></br>
-                        <textarea id="consolita" rows="10" cols="80"></textarea>
+                        <textarea id="consolita" rows="10" cols="40"></textarea>
                     </div>
                 </div>
                 <div class="containerRepos">
@@ -87,9 +81,109 @@
                     </div>
                 </div>
             </div>
-            <footer class="Piedepagina">
-
-            </footer>
         </div>
+        <script>
+            const url = "http://localhost:8000";
+
+
+var contenido = CodeMirror.fromTextArea(document.getElementById("contenido"),{
+    mode: "javascript",
+    theme:"material",
+    lineNumbers:true,
+    matchBrackets: true,
+    styleActiveLine: true,
+    tabSize:5,
+    });
+
+window.addEventListener('load', openArchivo, false);
+
+    function openArchivo() {
+        document.getElementById('abrirArch').addEventListener('change', cargarArchivo, false);               
+    }
+
+    function cargarArchivo(ev) {
+        var arch=new FileReader();
+        arch.addEventListener('load',leerArchivo,false);
+        arch.readAsText(ev.target.files[0]);
+    }
+    
+    function leerArchivo(ev) {
+        document.getElementById('contenido').value=ev.target.result;
+        contenido.setValue(ev.target.result);
+    }
+
+
+    function comunicar() {
+        fetch(url+'/users')
+        .then(response=> response.json())
+        .then(data=>{
+            data = JSON.stringify(data);
+            document.getElementById('consolita').value=data;
+        })
+        .catch(err=>console.log(err));    
+    }
+    function enviarData() {
+        fetch(url+'/compilar',{
+            method: 'POST',
+            headers:{
+                'Content-Type':'application/json',
+            },
+            body: JSON.stringify({
+                informacion: contenido.getValue()
+            })
+        })
+        .then(response=>response.json())
+        .then(data=>{
+            document.getElementById('consolita').value=data.respuesta;
+            console.log(data.grafica);
+            const tablaE =document.querySelector("#TablaErrores");
+            const tablaS =document.querySelector("#TablaSimbolos");
+            tablas(data.error,tablaE);
+            tablasimb(data.simbolos,tablaS);
+            console.log(data.grafico);
+            graficar(data.grafico);
+        })
+        .catch(err=>console.log(err)); 
+    }
+
+    function graficar(dot) {
+        d3.select("#Graph")
+            .graphviz()
+            .dot(dot)
+            .render();
+    }
+
+    function tablas(datos,tabla) {
+        tabla.innerHTML="";
+        var contador=0;
+        for(let valor of datos){
+            contador++;
+            tabla.innerHTML+=`
+            <tr>
+                <th scope="row">${contador}</th>
+                <td>${valor.tipo}</td>
+                <td>${valor.descripcion}</td>
+                <td>${valor.linea}</td>
+                <td>${valor.col}</td>
+            </tr>`;
+        }
+    }
+    function tablasimb(datos,tabla) {
+        tabla.innerHTML="";
+        var contador=0;
+        for(let valor of datos){
+            contador++;
+            tabla.innerHTML+=`
+            <tr>
+                <th scope="row">${contador}</th>
+                <td>${valor.id}</td>
+                <td>${valor.tipo}</td>
+                <td>${valor.tipoValor}</td>
+                <td>${valor.fila}</td>
+                <td>${valor.columna}</td>
+            </tr>`;
+        }
+    }
+        </script>
     </body>
 </html>

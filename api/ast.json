@@ -1,1 +1,1 @@
-[{"tipo":"INST_METODO","id":"metodo1","parametros":[],"instrucciones":[{"tipo":"INST_IMPRIMIR","expresion":{"tipo":"VAL_CADENA","valor":"hola \\\\n"}}]},{"tipo":"INST_MAIN","id":"metodo1","parametros":[]}]
+[""]

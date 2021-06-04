@@ -36,7 +36,16 @@ const TIPO_OPERACION={
     NOIGUAL:            'OP_NOIGUAL',
     ORR:                'OP_OR',
     ANDD:               'OP_AND',
-    NOTT:               'OP_NOT'
+    NOTT:               'OP_NOT',
+    TOLOWERR:           'FUNC_TOLOWER',
+    TOUPPERR:           'FUNC_TOUPPER',
+    LENGTHH:            'FUNC_LENGTH',
+    TRUNCATEE:          'FUNC_TRUNCATE',
+    ROUNDD:             'FUNC_ROUND',
+    TIPODE:             'FUNC_TYPEOF',
+    TOTEXTO:            'FUNC_TOSTRING',
+    CASTEO:             'OP_CASTEO',
+    TERNARIO:           'OP_TERNARIO'
 }
 
 const TIPO_INSTRUCCIONES={
@@ -50,7 +59,14 @@ const TIPO_INSTRUCCIONES={
     LLAMADA:                'INST_LLAMADA',
     BREAKK:                 'INST_BREAK',
     DOWHILE:                'INST_DOWHILE',
-    FOR:                    'INST_FOR'
+    FOR:                    'INST_FOR',
+    SWITCHH:                'INST_SWITCH',
+    DEFAULTT:               'INST_DEFAULT',
+    CASO:                   'INST_CASE',
+    ARREGLOO:               'INST_ARREGLO',
+    LISTAA:                 'INST_LISTAA',
+    VECTOR:                 'INST_VECTOR',
+    AGREGARLIST:            'FUNC_AGREGAR'
 }
 
 const INSTRUCCIONES={
@@ -216,7 +232,53 @@ const INSTRUCCIONES={
             asignacion:asignacion,
             instrucciones:instrucciones
         }
+    },
+    nuevoDefault:function(instrucciones) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.DEFAULTT,
+            instrucciones:instrucciones
+        }
+    },
+    nuevoSwitch:function(condicion1,casos,casodefault) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.SWITCHH,
+            condicion1:condicion1,
+            casos:casos,
+            casodefault:casodefault
+        }
+    },
+    nuevoCase:function(condicion2,instrucciones) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.CASO,
+            condicion2:condicion2,
+            instrucciones:instrucciones
+        }
+    },
+    nuevaLista:function(tipo_lista,id,elementos) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.DECLARACION,
+            tipoEstructura:TIPO_INSTRUCCIONES.LISTAA,
+            tipo_dato:tipo_lista,
+            id:id,
+            elementos:new Array()
+        }
+    },
+    nuevoTernario:function(condicion,valorVerdadero,valorFalso) {
+        return{
+            tipo:TIPO_OPERACION.TERNARIO,
+            condicion:condicion,
+            valorVerdadero:valorVerdadero,
+            valorFalso:valorFalso
+        }
+    },
+    agregarLista:function(id,expresion) {
+        return{
+            tipo:TIPO_INSTRUCCIONES.AGREGARLIST,
+            id:id,
+            expresion:expresion,
+        }
     }
+
 
 }
 

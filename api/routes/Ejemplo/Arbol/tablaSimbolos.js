@@ -33,7 +33,11 @@ class TS{
             //manejo si ya existe la variable
             console.log("la variable \""+simbolo.id+"\" ya existe");
         }else{
-            if(tipo==valor.tipo){
+            if (valor=="lista") {
+                let e=new Array(5);
+                this._simbolos.push(crearSimbolo(tipo,id,e));
+            }
+            else if(tipo==valor.tipo){
                 //verificar los casteos implicitos osea que no sean obvios
                 /**
                  * if(tipo=="decimal" && valor.tipo=="int"){
@@ -95,7 +99,11 @@ class TS{
 
         var simbolo=this._simbolos.filter((simbolo)=>simbolo.id==id)[0];
         if (simbolo) {
-            if (simbolo.tipo==valor.tipo) {
+            if (Array.isArray(valor)) {
+                console.log("entra");
+                simbolo.valor.push(valor.valor);
+            }
+            else if (simbolo.tipo==valor.tipo) {
                 simbolo.valor=valor.valor;
             }else{
                 //ver si hay casteos implisitos 6=3.7

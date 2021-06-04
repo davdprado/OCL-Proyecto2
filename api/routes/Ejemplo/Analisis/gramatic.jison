@@ -117,6 +117,7 @@
 %left 'orr'
 %left 'andd'
 %left 'nott'
+%left pregunta
 %left 'igualIgual' 'mayorQue' 'menorQue' 'mayorIgual' 'menorIgual' 'diferente'
 %left 'mas' 'menos'
 %left 'por' 'dividido' 'modular' //falta el de potencia
@@ -165,6 +166,7 @@ CUERPO2
 	| CUERPO2 FUNCDOWHILE					{ $1.push($2);$$=$1;}
 	| CUERPO2 CICLOFOR						{ $1.push($2);$$=$1;}
 	| CUERPO2 FUNCSWITCH					{ $1.push($2);$$=$1;}
+	| CUERPO2 ANADIR						{ $1.push($2);$$=$1;}
 	| FUNCSWITCH							{ $$=[$1];}
 	| CICLOFOR								{ $$=[$1];}
 	| FUNCDOWHILE							{ $$=[$1];}
@@ -175,6 +177,7 @@ CUERPO2
 	| LLAMADA								{$$=[$1];}
 	| FUNCIF								{$$=[$1];}
 	| BREAKK								{$$=[$1];}
+	| ANADIR								{$$=[$1];}
 	| error									{
 											var desc='Este es un error sintáctico: "' + yytext + '", en la linea: ' + this._$.first_line + ', en la columna: ' + this._$.first_column;
 											console.error('Este es un error sintáctico: ' + yytext + ', en la linea: ' + this._$.first_line + ', en la columna: ' + this._$.first_column);
@@ -193,6 +196,9 @@ MAIN
 	: ejecutar identificador pIzq VALORESLLAMADA pDer pyc {$$=INSTRUCCIONES.nuevoMain($2, $4);}
     | ejecutar identificador pIzq pDer pyc {$$=INSTRUCCIONES.nuevoMain($2, []);};
 
+ANADIR
+	:identificador punto agregar pIzq EXP pDer	pyc	{$$=INSTRUCCIONES.agregarLista($1,$5);};
+
 VALORESLLAMADA
     : VALORESLLAMADA comaa EXP {$1.push($3); $$=$1;}
     | EXP {$$=[$1];};
@@ -203,33 +209,39 @@ LLAMADA
 
 METODO
 	: tipoVoid identificador pIzq PARAMETROS pDer llaveIzq CUERPO2 llaveDer {listasimbolos.push(addSimbolo($1,TIPO_INSTRUCCIONES.METODO,$2,this._$.first_line,this._$.first_column));$$=INSTRUCCIONES.nuevoMetodo($2,$4,$7);}
-	| tipoVoid identificador pIzq pDer llaveIzq CUERPO2 llaveDer {listasimbolos.push(addSimbolo($1,TIPO_INSTRUCCIONES.METODO,$2,this._$.first_line,this._$.first_column));$$=INSTRUCCIONES.nuevoMetodo($2,[],$6);};
+	| tipoVoid identificador pIzq pDer llaveIzq CUERPO2 llaveDer {listasimbolos.push(addSimbolo($1,TIPO_INSTRUCCIONES.METODO,$2,this._$.first_line,this._$.first_column));$$=INSTRUCCIONES.nuevoMetodo($2,[],$6);}
+	| TIPO identificador pIzq pDer llaveIzq CUERPO2 llaveDer {listasimbolos.push(addSimbolo($1,TIPO_INSTRUCCIONES.METODO,$2,this._$.first_line,this._$.first_column));}
+	| TIPO identificador pIzq PARAMETROS pDer llaveIzq CUERPO2 llaveDer {listasimbolos.push(addSimbolo($1,TIPO_INSTRUCCIONES.METODO,$2,this._$.first_line,this._$.first_column));};
 
 PARAMETROS
 	: PARAMETROS comaa TIPO identificador		{$1.push(INSTRUCCIONES.nuevoParametro($3,$4));listasimbolos.push(addSimbolo($3,'INST_PARAMETRO',$4,this._$.first_line,this._$.first_column));$$=$1;}
 	| TIPO identificador						{listasimbolos.push(addSimbolo($1,'INST_PARAMETRO',$2,this._$.first_line,this._$.first_column));$$=[INSTRUCCIONES.nuevoParametro($1,$2)];};		
 
 CICLOFOR
-	:sentenciaFor pIzq IFOR  pyc EXP  pyc ASIG pDer llaveIzq CUERPO2 llaveDer;	
+	:sentenciaFor pIzq IFOR  pyc EXP  pyc ASIG pDer llaveIzq CUERPO2 llaveDer		{$$=INSTRUCCIONES.nuevoFor($3,$5,$7,$10);};	
 
 IFOR
-	: DECLA
-	| ASIG;	
+	: DECLA		{$$=$1}
+	| ASIG		{$$=$1};	
 
 DECLARACION
 	: DECLA  pyc    {$$=$1};
 
 DECLA
 	:TIPO identificador igual EXP			{listasimbolos.push(addSimbolo($1,'VARIABLE',$2,this._$.first_line,this._$.first_column)); $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,$4); }
-	|TIPO identificador                 {listasimbolos.push(addSimbolo($1,'VARIABLE',$2,this._$.first_line,this._$.first_column)); $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,undefined); };
+	|TIPO identificador                 {listasimbolos.push(addSimbolo($1,'VARIABLE',$2,this._$.first_line,this._$.first_column)); $$=INSTRUCCIONES.nuevaDeclaracion($1,$2,undefined); }
+	|TIPO corIzq corDer identificador igual nuevo TIPO corIzq EXP corDer 					{listasimbolos.push(addSimbolo($1,'ARREGLO',$4,this._$.first_line,this._$.first_column)); }	
+	|TIPO corIzq corDer identificador igual nuevo TIPO llaveIzq VALORESLLAMADA llaveDer		{listasimbolos.push(addSimbolo($1,'ARREGLO',$4,this._$.first_line,this._$.first_column)); }
+	|listaa menorQue TIPO mayorQue identificador igual nuevo listaa menorQue TIPO mayorQue {listasimbolos.push(addSimbolo($2,'LISTA',$5,this._$.first_line,this._$.first_column)); $$=INSTRUCCIONES.nuevaLista($3,$5,undefined); };
 
 ASIGNACION
 	:ASIG pyc 			{$$=$1};
 
 ASIG
-	:identificador igual EXP  			{$$=INSTRUCCIONES.nuevaAsignacion($1,$3);};
+	:identificador igual EXP  			{$$=INSTRUCCIONES.nuevaAsignacion($1,$3);}
+	|identificador corIzq EXP corDer igual EXP; 
 
-//si lo manejo asi tengo que validar que el valor que retorne EXP sea tipo bandera
+
 FUNCWHILE
 	: sentenciaWhile pIzq EXP pDer llaveIzq CUERPO2 llaveDer {$$=INSTRUCCIONES.nuevaWhile($3,$6);};
 
@@ -242,20 +254,21 @@ FUNCIF
 	|sentenciaIf pIzq EXP pDer  llaveIzq CUERPO2 llaveDer sentenciaElse FUNCIF {$$=INSTRUCCIONES.nuevaIf($3,$6,[$9]);};
 
 FUNCSWITCH
-	:sentenciaSwitch pIzq EXP pDer llaveIzq CASOS llaveDer
-	|sentenciaSwitch pIzq EXP pDer llaveIzq CASOS defectoo dosPuntos CUERPO2 llaveDer
-	|sentenciaSwitch pIzq EXP pDer llaveIzq defectoo dosPuntos CUERPO2 llaveDer;
+	:sentenciaSwitch pIzq EXP pDer llaveIzq CASOS llaveDer										{$$=INSTRUCCIONES.nuevoSwitch($3,$6,undefined);}
+	|sentenciaSwitch pIzq EXP pDer llaveIzq CASOS DEFAULTT llaveDer			{$$=INSTRUCCIONES.nuevoSwitch($3,$6,$7);}
+	|sentenciaSwitch pIzq EXP pDer llaveIzq DEFAULTT llaveDer				{$$=INSTRUCCIONES.nuevoSwitch($3,[],$6);};
 
 CASOS
-	: CASOS casoo EXP dosPuntos CUERPO2
-	| casoo EXP dosPuntos CUERPO2;
+	: CASOS casoo EXP dosPuntos CUERPO2			{$1.push(INSTRUCCIONES.nuevoCase($3,$5));$$=$1;}	
+	| casoo EXP dosPuntos CUERPO2				{$$=[INSTRUCCIONES.nuevoCase($2,$4)];};
 
-
+DEFAULTT
+	: defectoo dosPuntos CUERPO2     			{$$=INSTRUCCIONES.nuevoDefault($3);};
 IMPRIMIR 
 	: imprimir pIzq EXP pDer pyc    { $$=INSTRUCCIONES.nuevaImprimir($3);};
 
 CASTEO
-	: pIzq TIPO pDer EXP %prec UCASTEO;
+	: pIzq TIPO pDer EXP %prec UCASTEO {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.CASTEO,$2,$4);};
 
 BREAKK
 	: romper pyc {$$=INSTRUCCIONES.nuevoBreak();};
@@ -286,12 +299,27 @@ EXP
 	| EXP andd EXP                  {$$=INSTRUCCIONES.nuevaOperacionBinaria(TIPO_OPERACION.ANDD,$1,$3);}
 	| nott EXP						{$$=INSTRUCCIONES.nuevaOperacionUnaria(TIPO_OPERACION.NOTT,$2);}
 	| menos EXP %prec UMENOS        {$$=INSTRUCCIONES.nuevaOperacionUnaria(TIPO_OPERACION.NEGATIVO,$2);}
-	| pIzq EXP pDer                 {$$=$2}
+	| EXP pregunta EXP dosPuntos EXP {$$=INSTRUCCIONES.nuevoTernario(TIPO_OPERACION.TERNARIO,$1,$3,$5);}
+	| CASTEO	%prec UCASTEO		{$$=$1;}
+	| pIzq EXP pDer                 {$$=$2;}
     | entero                        {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.ENTERO,Number($1));}
 	| decimall                      {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.DECIMAL,Number($1));}
 	| cadenaaa                      {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.CADENA,$1);}
     | caracter  					{$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.CARACTER,$1);}
 	| truee                         {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.BANDERA,true);}
 	| falsee                        {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.BANDERA,false);}
-	| identificador                 {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.IDENTIFICADOR,$1);};
+	| identificador                 {$$=INSTRUCCIONES.nuevoValor(TIPO_VALOR.IDENTIFICADOR,$1);}
+	| FUNCIONESESPECIALES			{$$=$1;}
+	| identificador corIzq EXP corDer						
+	| identificador corIzq corIzq EXP corDer corDer;
 
+FUNCIONESESPECIALES
+	:toMinusculas pIzq EXP pDer 			{$$=INSTRUCCIONES.nuevaOperacionUnaria(TIPO_OPERACION.TOLOWERR,$3);}
+	|toMayus pIzq EXP pDer			{$$=INSTRUCCIONES.nuevaOperacionUnaria(TIPO_OPERACION.TOUPPERR,$3);}
+	|tamanoo pIzq EXP pDer			{$$=INSTRUCCIONES.nuevaOperacionUnaria(TIPO_OPERACION.LENGTHH,$3);}
+	|f_truncate pIzq EXP pDer			{$$=INSTRUCCIONES.nuevaOperacionUnaria(TIPO_OPERACION.TRUNCATEE,$3);}
+	|redondear pIzq EXP pDer			{$$=INSTRUCCIONES.nuevaOperacionUnaria(TIPO_OPERACION.ROUNDD,$3);}
+	|retTipo  pIzq EXP pDer			{$$=INSTRUCCIONES.nuevaOperacionUnaria(TIPO_OPERACION.TIPODE,$3);}
+	|toTexto pIzq EXP pDer			{$$=INSTRUCCIONES.nuevaOperacionUnaria(TIPO_OPERACION.TOTEXTO,$3);}
+	|toCaracter pIzq EXP pDer			
+	|identificador pIzq VALORESLLAMADA pDer;

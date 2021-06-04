@@ -36,14 +36,7 @@ li a:hover:not(.active) {
 
 .containerText div {
     color: white;
-    margin: 15px;
-    display: inline-block;
-    border: 1px solid #757575;
-    -moz-border-radius: 20px;
-    -webkit-border-radius: 20px;
-    padding: 10px;
     width: auto;
-    height: auto;
 }
 
 textarea{
@@ -51,14 +44,14 @@ textarea{
     color: white;
     font-size: 16px;
     background-color: #37474f;
-    border-radius: 15px;
-    height: 500px;
-    width: 450px;
 }
 
 .Consola textarea{
+  resize: both;
     color: white;
     background-color: black;
+    height: 500px;
+    width: 450px;
 }
 
 
